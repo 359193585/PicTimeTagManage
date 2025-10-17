@@ -210,7 +210,7 @@ namespace PicTimeTagManage
                 MessageBox.Show($"你输入的坐标位置可能错误:{detailedResult}", "提醒");
                 return;
             }
-            string GPSCheck = isOverWrite ? "" : @"-if ""not defined $GPSLatitude and not defined $GPSLongitude""";
+            string GPSCheck = isOverWrite ? "" : @"-if ""not defined $GPSLatitude and not defined $GPSLongitude""" ;
             string gpsArgu = ExiftoolArgumentsFormat.ConvertCoordinatesToExifToolParams($"{detailedResult.latitude},{detailedResult.longitude}");
 
             // 构建要执行的命令列表

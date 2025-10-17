@@ -208,6 +208,7 @@ public partial class LatLongInputDialog : BaseFormDialog
     private void LatLongInputDialog_Load(object sender, EventArgs e)
     {
         label1.Text = "请输入经纬度坐标，\r\n格式为“纬度，经度”，\r\n用半角逗号分隔，如：32.123412,118.121212";
+        Overwrite = checkBox1.Checked;
     }
 
     #region 系统剪切板监听

@@ -66,20 +66,20 @@ namespace PicTimeTagManage
             this.listBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.listBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listBox1.FormattingEnabled = true;
-            this.listBox1.ItemHeight = 17;
+            this.listBox1.ItemHeight = 24;
             this.listBox1.Location = new System.Drawing.Point(0, 0);
-            this.listBox1.Margin = new System.Windows.Forms.Padding(55, 23, 55, 23);
+            this.listBox1.Margin = new System.Windows.Forms.Padding(82, 34, 82, 34);
             this.listBox1.Name = "listBox1";
             this.listBox1.ScrollAlwaysVisible = true;
-            this.listBox1.Size = new System.Drawing.Size(824, 467);
+            this.listBox1.Size = new System.Drawing.Size(1236, 688);
             this.listBox1.TabIndex = 2;
             // 
             // btnExecute
             // 
-            this.btnExecute.Location = new System.Drawing.Point(181, 23);
-            this.btnExecute.Margin = new System.Windows.Forms.Padding(55, 23, 55, 23);
+            this.btnExecute.Location = new System.Drawing.Point(272, 34);
+            this.btnExecute.Margin = new System.Windows.Forms.Padding(82, 34, 82, 34);
             this.btnExecute.Name = "btnExecute";
-            this.btnExecute.Size = new System.Drawing.Size(129, 51);
+            this.btnExecute.Size = new System.Drawing.Size(194, 76);
             this.btnExecute.TabIndex = 3;
             this.btnExecute.Text = "执行";
             this.btnExecute.UseVisualStyleBackColor = true;
@@ -87,10 +87,10 @@ namespace PicTimeTagManage
             // 
             // btnReview
             // 
-            this.btnReview.Location = new System.Drawing.Point(33, 23);
-            this.btnReview.Margin = new System.Windows.Forms.Padding(55, 23, 55, 23);
+            this.btnReview.Location = new System.Drawing.Point(50, 34);
+            this.btnReview.Margin = new System.Windows.Forms.Padding(82, 34, 82, 34);
             this.btnReview.Name = "btnReview";
-            this.btnReview.Size = new System.Drawing.Size(129, 51);
+            this.btnReview.Size = new System.Drawing.Size(194, 76);
             this.btnReview.TabIndex = 6;
             this.btnReview.Text = "预览";
             this.btnReview.UseVisualStyleBackColor = true;
@@ -99,10 +99,10 @@ namespace PicTimeTagManage
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(3497, 175);
-            this.label3.Margin = new System.Windows.Forms.Padding(55, 0, 55, 0);
+            this.label3.Location = new System.Drawing.Point(492, 60);
+            this.label3.Margin = new System.Windows.Forms.Padding(82, 0, 82, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(99, 17);
+            this.label3.Size = new System.Drawing.Size(147, 24);
             this.label3.TabIndex = 7;
             this.label3.Text = "需要处理0个文件";
             // 
@@ -110,20 +110,21 @@ namespace PicTimeTagManage
             // 
             this.label4.AllowDrop = true;
             this.label4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.label4.Dock = System.Windows.Forms.DockStyle.Top;
+            this.label4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.label4.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.label4.Font = new System.Drawing.Font("宋体", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.label4.Location = new System.Drawing.Point(0, 0);
-            this.label4.Margin = new System.Windows.Forms.Padding(55, 0, 55, 0);
+            this.label4.Margin = new System.Windows.Forms.Padding(82, 0, 82, 0);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(824, 102);
+            this.label4.Size = new System.Drawing.Size(1236, 139);
             this.label4.TabIndex = 8;
+            this.label4.Text = "----";
             // 
             // splitContainer1
             // 
             this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainer1.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer1.Margin = new System.Windows.Forms.Padding(41, 17, 41, 17);
+            this.splitContainer1.Margin = new System.Windows.Forms.Padding(62, 26, 62, 26);
             this.splitContainer1.Name = "splitContainer1";
             this.splitContainer1.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -134,9 +135,9 @@ namespace PicTimeTagManage
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.listBox1);
-            this.splitContainer1.Size = new System.Drawing.Size(824, 585);
-            this.splitContainer1.SplitterDistance = 95;
-            this.splitContainer1.SplitterWidth = 23;
+            this.splitContainer1.Size = new System.Drawing.Size(1236, 861);
+            this.splitContainer1.SplitterDistance = 139;
+            this.splitContainer1.SplitterWidth = 34;
             this.splitContainer1.TabIndex = 9;
             // 
             // panel1
@@ -145,20 +146,20 @@ namespace PicTimeTagManage
             this.panel1.Controls.Add(this.btnExecute);
             this.panel1.Controls.Add(this.label3);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel1.Location = new System.Drawing.Point(0, 585);
-            this.panel1.Margin = new System.Windows.Forms.Padding(41, 17, 41, 17);
+            this.panel1.Location = new System.Drawing.Point(0, 861);
+            this.panel1.Margin = new System.Windows.Forms.Padding(62, 26, 62, 26);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(824, 93);
+            this.panel1.Size = new System.Drawing.Size(1236, 156);
             this.panel1.TabIndex = 10;
             // 
             // FormBatchEditFileName
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
-            this.ClientSize = new System.Drawing.Size(824, 678);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(144F, 144F);
+            this.ClientSize = new System.Drawing.Size(1236, 1017);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.panel1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(69, 34, 69, 34);
+            this.Margin = new System.Windows.Forms.Padding(104, 51, 104, 51);
             this.Name = "FormBatchEditFileName";
             this.Text = "FormBatchEdit";
             this.Load += new System.EventHandler(this.FormBatchEdit_Load);
