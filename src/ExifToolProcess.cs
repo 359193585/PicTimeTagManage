@@ -211,6 +211,7 @@ namespace PicTimeTagManage
         private void ExifToolProcess_Load(object sender, EventArgs e)
         {
             txtOutput.Text = initMesgStr;
+            txtOutput.Select(0, 0);
         }
         private string SingleFileProcessGpsEdit(List<string> selectedFiles)
         {
