@@ -142,7 +142,7 @@ namespace PicTimeTagManage
             }
             if (selectedRows.Count >= 20)
             {
-                string Mesg = $"你选择了{selectedRows.Count}个文件，读取文件exif信息将非常耗时，界面会假死，请耐心等待！如果你不想继续操作，请点击取消按钮。";
+                string Mesg = $"你选择了{selectedRows.Count}个文件，读取文件exif信息将非常耗时，界面会假死，请耐心等待！如果你不想继续操作，请点击按钮“否”。";
                 DialogResult dialogResult = MessageBox.Show(Mesg, "重要提醒", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 if (dialogResult == DialogResult.Yes)
                 {
