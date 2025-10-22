@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -201,7 +202,7 @@ namespace PicTimeTagManage
                 MessageBox.Show("请先选择要处理的文件");
                 return;
             }
-            string FileName= selectedFiles[0];
+            string FileName = selectedFiles[0];
             string FirstFileGpsString = GetExifGps(FileName);
             using (LatLongInputDialog inputDialog = new LatLongInputDialog())
             {
@@ -279,7 +280,7 @@ namespace PicTimeTagManage
         private void menuWriteModifyTimeToExifInAllFile_Click(object sender, EventArgs e)
         {
             if (dataGridView1.Rows.Count <= 0) return;
-            string Mesg = MultilFileExifDateModifyWarningMesg(dataGridView1.Rows.Count-1);
+            string Mesg = MultilFileExifDateModifyWarningMesg(dataGridView1.Rows.Count - 1);
 
             DialogResult dialogResult = MessageBox.Show(Mesg, "重要提醒", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
             string TimeCheck;
@@ -313,6 +314,25 @@ namespace PicTimeTagManage
             ExifToolProcess formEdit = new ExifToolProcess(exifProcessName, selectedFolderPath, commands);
             formEdit.Show();
         }
-
+        private void menuCopyTimeToClipboard_Click(object sender, EventArgs e)
+        {
+            DataGridViewRow row = dataGridView1.SelectedRows[0];
+            if (row != null)
+            {
+                string timeValue = row.Cells["ExifTime"].Value.ToString();
+                Clipboard.Clear();
+                Clipboard.SetText(timeValue);
+            }
+        }
+        private void menuCopyGPSToClipboard_Click(object sender, EventArgs e)
+        {
+            DataGridViewRow row = dataGridView1.SelectedRows[0];
+            if (row != null)
+            {
+                string gpsValus = row.Cells["ExifGPS"].Value.ToString();
+                Clipboard.Clear();
+                Clipboard.SetText(gpsValus);
+            }
+        }
     }
 }

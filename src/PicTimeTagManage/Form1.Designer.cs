@@ -59,6 +59,7 @@ namespace PicTimeTagManage
             this.btnRefresh = new System.Windows.Forms.Button();
             this.toolStripContainer2 = new System.Windows.Forms.ToolStripContainer();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.panel1 = new System.Windows.Forms.Panel();
             this.label5 = new System.Windows.Forms.Label();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
@@ -83,7 +84,6 @@ namespace PicTimeTagManage
             this.label3 = new System.Windows.Forms.Label();
             this.textBoxOrignTime = new System.Windows.Forms.TextBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.pictureBox2 = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.toolStripContainer2.ContentPanel.SuspendLayout();
             this.toolStripContainer2.SuspendLayout();
@@ -91,6 +91,7 @@ namespace PicTimeTagManage
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).BeginInit();
             this.splitContainer2.Panel1.SuspendLayout();
@@ -107,7 +108,6 @@ namespace PicTimeTagManage
             this.splitContainer4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).BeginInit();
             this.panel4.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
             // 
             // BottomToolStripPanel
@@ -230,6 +230,18 @@ namespace PicTimeTagManage
             this.splitContainer1.Size = new System.Drawing.Size(984, 661);
             this.splitContainer1.SplitterDistance = 70;
             this.splitContainer1.TabIndex = 11;
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.pictureBox2.Dock = System.Windows.Forms.DockStyle.Right;
+            this.pictureBox2.Image = global::PicTimeTagManage.Properties.Resources.Icon;
+            this.pictureBox2.Location = new System.Drawing.Point(901, 0);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(79, 66);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBox2.TabIndex = 10;
+            this.pictureBox2.TabStop = false;
             // 
             // panel1
             // 
@@ -397,7 +409,7 @@ namespace PicTimeTagManage
             // 
             // btnRight90
             // 
-            this.btnRight90.Location = new System.Drawing.Point(97, 157);
+            this.btnRight90.Location = new System.Drawing.Point(97, 187);
             this.btnRight90.Name = "btnRight90";
             this.btnRight90.Size = new System.Drawing.Size(82, 33);
             this.btnRight90.TabIndex = 10;
@@ -407,7 +419,7 @@ namespace PicTimeTagManage
             // 
             // btnLeft90
             // 
-            this.btnLeft90.Location = new System.Drawing.Point(9, 157);
+            this.btnLeft90.Location = new System.Drawing.Point(9, 187);
             this.btnLeft90.Name = "btnLeft90";
             this.btnLeft90.Size = new System.Drawing.Size(82, 33);
             this.btnLeft90.TabIndex = 9;
@@ -418,7 +430,7 @@ namespace PicTimeTagManage
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(7, 142);
+            this.label6.Location = new System.Drawing.Point(7, 172);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(53, 12);
             this.label6.TabIndex = 8;
@@ -426,7 +438,7 @@ namespace PicTimeTagManage
             // 
             // btnLoadMap
             // 
-            this.btnLoadMap.Location = new System.Drawing.Point(9, 100);
+            this.btnLoadMap.Location = new System.Drawing.Point(9, 116);
             this.btnLoadMap.Name = "btnLoadMap";
             this.btnLoadMap.Size = new System.Drawing.Size(125, 26);
             this.btnLoadMap.TabIndex = 7;
@@ -436,9 +448,9 @@ namespace PicTimeTagManage
             // 
             // btnFlash
             // 
-            this.btnFlash.Location = new System.Drawing.Point(9, 206);
+            this.btnFlash.Location = new System.Drawing.Point(9, 224);
             this.btnFlash.Name = "btnFlash";
-            this.btnFlash.Size = new System.Drawing.Size(125, 53);
+            this.btnFlash.Size = new System.Drawing.Size(125, 35);
             this.btnFlash.TabIndex = 6;
             this.btnFlash.Text = "刷新当前文件信息";
             this.btnFlash.UseVisualStyleBackColor = true;
@@ -446,7 +458,7 @@ namespace PicTimeTagManage
             // 
             // btnModifyGps
             // 
-            this.btnModifyGps.Location = new System.Drawing.Point(309, 74);
+            this.btnModifyGps.Location = new System.Drawing.Point(309, 91);
             this.btnModifyGps.Name = "btnModifyGps";
             this.btnModifyGps.Size = new System.Drawing.Size(82, 19);
             this.btnModifyGps.TabIndex = 5;
@@ -459,13 +471,13 @@ namespace PicTimeTagManage
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(7, 58);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(89, 12);
+            this.label4.Size = new System.Drawing.Size(311, 24);
             this.label4.TabIndex = 4;
-            this.label4.Text = "照片拍摄经纬度";
+            this.label4.Text = "照片拍摄经纬度\r\n（会自动读取剪切板中文本,如匹配GPS数据,自动更新）";
             // 
             // textBoxGpsLocation
             // 
-            this.textBoxGpsLocation.Location = new System.Drawing.Point(9, 73);
+            this.textBoxGpsLocation.Location = new System.Drawing.Point(9, 89);
             this.textBoxGpsLocation.Name = "textBoxGpsLocation";
             this.textBoxGpsLocation.Size = new System.Drawing.Size(294, 21);
             this.textBoxGpsLocation.TabIndex = 3;
@@ -496,18 +508,6 @@ namespace PicTimeTagManage
             this.textBoxOrignTime.Size = new System.Drawing.Size(294, 21);
             this.textBoxOrignTime.TabIndex = 0;
             // 
-            // pictureBox2
-            // 
-            this.pictureBox2.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.pictureBox2.Dock = System.Windows.Forms.DockStyle.Right;
-            this.pictureBox2.Image = global::PicTimeTagManage.Properties.Resources.Icon;
-            this.pictureBox2.Location = new System.Drawing.Point(901, 0);
-            this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(79, 66);
-            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.pictureBox2.TabIndex = 10;
-            this.pictureBox2.TabStop = false;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -528,6 +528,7 @@ namespace PicTimeTagManage
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             this.splitContainer2.Panel1.ResumeLayout(false);
@@ -546,7 +547,6 @@ namespace PicTimeTagManage
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).EndInit();
             this.panel4.ResumeLayout(false);
             this.panel4.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.ResumeLayout(false);
 
         }

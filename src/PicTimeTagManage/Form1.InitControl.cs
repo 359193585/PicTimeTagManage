@@ -65,6 +65,17 @@ namespace PicTimeTagManage
             ToolStripMenuItem menuSplitLine3 = new ToolStripMenuItem("--------");//分隔行
             contextMenu.Items.Add(menuSplitLine3);//分隔行
 
+            ToolStripMenuItem menuCopyTimeToClipboard = new ToolStripMenuItem("复制选中行的时间值");
+            menuCopyTimeToClipboard.Click += menuCopyTimeToClipboard_Click;
+            contextMenu.Items.Add(menuCopyTimeToClipboard);
+
+            ToolStripMenuItem menuCopyGPSToClipboard = new ToolStripMenuItem("复制选中行的GPS值");
+            menuCopyGPSToClipboard.Click += menuCopyGPSToClipboard_Click;
+            contextMenu.Items.Add(menuCopyGPSToClipboard);
+
+            ToolStripMenuItem menuSplitLine4= new ToolStripMenuItem("--------");//分隔行
+            contextMenu.Items.Add(menuSplitLine4);//分隔行
+
             ToolStripMenuItem menuSaveTimeGpsMesgToFile = new ToolStripMenuItem("查询结果保存到日志文件");
             menuSaveTimeGpsMesgToFile.Click += menuSaveTimeGpsMesgToFile_Click;
             contextMenu.Items.Add(menuSaveTimeGpsMesgToFile);
