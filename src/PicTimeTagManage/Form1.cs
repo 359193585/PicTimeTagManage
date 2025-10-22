@@ -86,6 +86,8 @@ namespace PicTimeTagManage
             ExifToolProcessor exifTool = new ExifToolProcessor(exifProcessName, commands, "", null);
             exifTool.ExecuteCommand(commands[0]+ $" \"{pendingFilePath}\"");
             textBoxGpsLocation.ForeColor = Color.Black;
+            AutoFlashAfterModify();
+
         }
         private void btnSelectFolder_Click(object sender, EventArgs e)
         {
@@ -110,13 +112,7 @@ namespace PicTimeTagManage
         /// <param name="e"></param>
         private void btnLoadMap_Click(object sender, EventArgs e)
         {
-            FormLoadMap formLoadMap = new FormLoadMap();
-            var DiaResult = formLoadMap.ShowDialog();
-            if (DiaResult == DialogResult.OK)
-            {
-                GpsCoordinateValidator.GetMapUrl(textBoxGpsLocation.Text, out string url);
-                Process.Start(url);
-            }
+            new MyMethod().ShowGPSSelection(textBoxGpsLocation.Text);
         }
         /// <summary>
         /// 单文件选择后，读取具体信息显示到底部栏
@@ -124,6 +120,11 @@ namespace PicTimeTagManage
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void btnFlash_Click(object sender, EventArgs e)
+        {
+            AutoFlashAfterModify();
+        }
+
+        private void AutoFlashAfterModify()
         {
             List<string> selectedFiles = GetSelectedFiles();//如多选，显示第一个被选的
             if (selectedFiles.Count > 0)
@@ -133,6 +134,7 @@ namespace PicTimeTagManage
                 GetMultipleMetaDataAll(filePath);
             }
         }
+
         private void btnLeft90_Click(object sender, EventArgs e)
         {
             List<string> selectedFiles = GetSelectedFiles();//如多选，显示第一个被选的
@@ -196,6 +198,8 @@ namespace PicTimeTagManage
             }
             ExifToolProcess formEdit = new ExifToolProcess(selectedFiles, commands, exifProcessName);
             formEdit.Show();
+            AutoFlashAfterModify();
+
         }
         private void CreateGpsWriteArguments(string gpsStr, out List<string> commands, bool isOverWrite)
         {

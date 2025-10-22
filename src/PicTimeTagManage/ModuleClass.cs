@@ -35,6 +35,24 @@ namespace PicTimeTagManage
     }
     public class MyMethod
     {
+        public void ShowGPSSelection(string GPSString)
+        {
+            if (Properties.Settings.Default.DoNotShowPrompt)
+            {
+                GpsCoordinateValidator.GetMapUrl(GPSString, out string url);
+                Process.Start(url);
+            }
+            else
+            {
+                FormLoadMap formLoadMap = new FormLoadMap();
+                var DiaResult = formLoadMap.ShowDialog();
+                if (DiaResult == DialogResult.OK)
+                {
+                    GpsCoordinateValidator.GetMapUrl(GPSString, out string url);
+                    Process.Start(url);
+                }
+            }
+        }
         /// <summary>
         /// 打开文件所在目录并选中文件
         /// </summary>

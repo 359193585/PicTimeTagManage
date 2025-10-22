@@ -38,5 +38,13 @@ namespace PicTimeTagManage
         {
             this.Close();
         }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox1.Checked)
+            {
+                Properties.Settings.Default.DoNotShowPrompt = checkBox1.Checked;
+            }
+            }
     }
 }
