@@ -312,6 +312,8 @@ namespace PicTimeTagManage
                 ExecuteCommand(cmd);
             }
         }
+        private readonly object _outputLock = new object();
+        private readonly object _errorLock = new object();
         /// <summary>
         /// 同步执行exiftool命令并返回结果（阻塞式）
         /// </summary>
@@ -338,55 +340,207 @@ namespace PicTimeTagManage
                 Environment = { ["PERL_UNICODE"] = "AS" },
             };
 
-            //异步读取
-            using (var process = new Process())
+            try
             {
-                process.StartInfo = startInfo;
-                // 使用异步事件处理输出
-                var outputBuilder = new StringBuilder();
-                var errorBuilder = new StringBuilder();
 
-                process.OutputDataReceived += (sender, e) =>
+                //异步读取
+                using (var process = new Process())
                 {
-                    if (!string.IsNullOrEmpty(e.Data))
-                        outputBuilder.AppendLine(e.Data);
-                };
+                    process.StartInfo = startInfo;
+                    // 使用异步事件处理输出
+                    var outputBuilder = new StringBuilder();
+                    var errorBuilder = new StringBuilder();
+                    // 创建信号量，用于等待读取完成
+                    var outputFinished = new ManualResetEvent(false);
+                    var errorFinished = new ManualResetEvent(false);
 
-                process.ErrorDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                        errorBuilder.AppendLine(e.Data);
-                };
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                        {
+                            // 接收到null表示输出流已关闭
+                            outputFinished.Set();
+                        }
+                        else
+                        {
+                            lock (_outputLock)
+                            {
+                                outputBuilder.AppendLine(e.Data);
+                            }
+                        }
+                        //if (!string.IsNullOrEmpty(e.Data))
+                        //    lock (_outputLock) // 确保同一时间只有一个线程修改 outputBuilder
+                        //    {
+                        //        outputBuilder.AppendLine(e.Data);
+                        //    }
+                    };
 
-                // 启动进程
-                process.Start();
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                        {
+                            // 接收到null表示错误流已关闭
+                            errorFinished.Set();
+                        }
+                        else
+                        {
+                            lock (_errorLock)
+                            {
+                                errorBuilder.AppendLine(e.Data);
+                            }
+                        }
+                        //if (!string.IsNullOrEmpty(e.Data))
+                        //    lock (_errorLock)
+                        //    {
+                        //        errorBuilder.AppendLine(e.Data);
+                        //    }
+                    };
 
-                // 开始异步读取
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                    // 启动进程
+                    process.Start();
 
-                // 等待退出（带超时）
-                if (!process.WaitForExit(timeoutMs)) // 默认是60秒
-                {
-                    process.Kill();
-                    throw new TimeoutException("exiftool 执行超时");
+                    // 开始异步读取
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    // 等待退出（带超时）
+                    if (!process.WaitForExit(timeoutMs)) // 默认是60秒
+                    {
+                        process.Kill();
+                        throw new TimeoutException("exiftool 执行超时");
+                    }
+                    // 等待两个异步读取操作完成，设置合理的超时时间
+                    if (!outputFinished.WaitOne(5000) || !errorFinished.WaitOne(5000))
+                    {
+                        throw new TimeoutException("等待exiftool输出超时");
+                    }
+                    //// 额外等待确保所有输出被捕获
+                    //Thread.Sleep(2000);
+
+                    // 获取完整输出
+                    string output = outputBuilder.ToString();
+                    string error = errorBuilder.ToString();
+
+                    // 记录详细日志
+                    string imagePath = "";
+                    LogExecution(imagePath, arguments, output, error, process.ExitCode);
+                    // 错误处理
+                    if (process.ExitCode != 0 || !string.IsNullOrEmpty(error))
+                        throw new Exception($"exiftool 错误 (代码:{process.ExitCode}): {error}");
+
+                    return output;
                 }
 
-                // 额外等待确保所有输出被捕获
-                Thread.Sleep(200);
+            }
+            catch (Exception ex)
+            {
+                // 记录完整的错误上下文，包括参数和图像路径
+                LogExecution("", arguments, "", $"异常: { ex.ToString()}", 100);
+                throw; // 重新抛出，让调用方感知到失败
+            }
+        }
+        private readonly object _cmdAsyncLock = new object();
 
-                // 获取完整输出
-                string output = outputBuilder.ToString();
-                string error = errorBuilder.ToString();
+        public string ExecuteCommandAsync(string arguments, int timeoutMs = 60000)
+        {
+            lock (_cmdAsyncLock)
+            {
 
-                // 记录详细日志
-                string imagePath = "";
-                LogExecution(imagePath, arguments, output, error, process.ExitCode);
-                // 错误处理
-                if (process.ExitCode != 0 || !string.IsNullOrEmpty(error))
-                    throw new Exception($"exiftool 错误 (代码:{process.ExitCode}): {error}");
+                if (string.IsNullOrEmpty(_exiftoolExeFullPathName))
+                    throw new InvalidOperationException("exiftool路径未确定。");
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = _exiftoolExeFullPathName,
+                    Arguments = arguments,
+                    WorkingDirectory = _workingDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    // 同时设置输出编码为UTF-8，以便正确读取输出
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8,
+                    // 设置环境变量
+                    Environment = { ["PERL_UNICODE"] = "AS" },
+                };
 
-                return output;
+                try
+                {
+                    //异步读取
+                    using (var process = new Process())
+                    {
+                        process.StartInfo = startInfo;
+                        // 使用异步事件处理输出
+                        var outputBuilder = new StringBuilder();
+                        var errorBuilder = new StringBuilder();
+                        // 创建信号量，用于等待读取完成
+                        var outputFinished = new ManualResetEvent(false);
+                        var errorFinished = new ManualResetEvent(false);
+
+                        process.OutputDataReceived += (sender, e) =>
+                        {
+                            if (e.Data == null)
+                            {
+                                // 接收到null表示输出流已关闭
+                                outputFinished.Set();
+                            }
+                            else
+                            {
+                                lock (_outputLock)
+                                {
+                                    outputBuilder.AppendLine(e.Data);
+                                }
+                            }
+                        };
+
+                        process.ErrorDataReceived += (sender, e) =>
+                        {
+                            if (e.Data == null)
+                            {
+                                // 接收到null表示错误流已关闭
+                                errorFinished.Set();
+                            }
+                            else
+                            {
+                                lock (_errorLock)
+                                {
+                                    errorBuilder.AppendLine(e.Data);
+                                }
+                            }
+
+                        };
+
+                        // 启动进程
+                        process.Start();
+
+                        // 开始异步读取
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+
+                        // 等待退出（带超时）
+                        if (!process.WaitForExit(timeoutMs)) // 默认是60秒
+                        {
+                            process.Kill();
+                            throw new TimeoutException("exiftool 执行超时");
+                        }
+                        // 等待两个异步读取操作完成，设置合理的超时时间
+                        if (!outputFinished.WaitOne(5000) || !errorFinished.WaitOne(5000))
+                        {
+                            throw new TimeoutException("等待exiftool输出超时");
+                        }
+
+                        // 获取完整输出
+                        string output = outputBuilder.ToString();
+                        string error = errorBuilder.ToString();
+                        return output;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    LogExecution("", arguments, "", $"异常: {ex.ToString()}", 100);
+                    throw; 
+                }
             }
         }
         // 记录执行日志
@@ -400,7 +554,7 @@ namespace PicTimeTagManage
                         $"错误: {(string.IsNullOrEmpty(error) ? "<空>" : error)}\n" +
                         new string('-', 80) + "\n\n";
 
-            File.AppendAllText("exiftool.log", log);
+           // File.AppendAllText("exiftool.log", log);
         }
 
     }

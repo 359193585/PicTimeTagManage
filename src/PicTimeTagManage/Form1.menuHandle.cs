@@ -20,13 +20,16 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 namespace PicTimeTagManage
 {
     public partial class Form1
     {
+        
         private void menuCleanSavedMesgFile_Click(object sender, EventArgs e)
         {
             string tempDir = Path.GetFullPath("./");
@@ -114,7 +117,7 @@ namespace PicTimeTagManage
                     Debug.WriteLine(ex.Message);
                 }
             }
-            MessageBox.Show("本次处理结束，如果不准确，请重新调整！", "提醒");
+            MessageBox.Show("本次处理结束，如果信息不准确，请重新调整！", "提醒");
         }
         /// <summary>
         /// 将选中的文件，从文件名猜测时间后，修改文件的创建时间,
@@ -166,20 +169,15 @@ namespace PicTimeTagManage
                     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                         continue;
 
-                    // 获取EXIF信息
-                    var exifTime = GetExifTime(filePath);
-                    var exifGps = GetExifGps(filePath);
+                    //// 获取EXIF信息
+                    //var exifTime = GetExifTime(filePath);
+                    //var exifGps = GetExifGps(filePath);
+                    ////更新DataGridView中的值
+                    //row.Cells["ExifTime"].Value = exifTime;
+                    //row.Cells["ExifGPS"].Value = exifGps;
 
-                    // 更新DataGridView中的值
-                    row.Cells["ExifTime"].Value = exifTime;
-                    row.Cells["ExifGPS"].Value = exifGps;
-
-                    // 更新数据源中的对象
-                    if (row.DataBoundItem is FileInfoDisplay fileInfo)
-                    {
-                        fileInfo.ExifTime = exifTime;
-                        fileInfo.ExifGPS = exifGps;
-                    }
+                    _ = ReadExifTime(filePath, row.Index); //异步 
+                    _ = ReadExifGps(filePath, row.Index);   
                 }
             }
             finally
@@ -333,6 +331,63 @@ namespace PicTimeTagManage
                 Clipboard.Clear();
                 Clipboard.SetText(gpsValus);
             }
+        }
+        public (int rowIndex, int columnIndex) FindCellIndexByValue(DataGridView dgv, string targetValue)
+        {
+            for (int rowIndex = 0; rowIndex < dgv.Rows.Count; rowIndex++)
+            {
+                for (int colIndex = 0; colIndex < dgv.Rows[rowIndex].Cells.Count; colIndex++)
+                {
+                    object cellValue = dgv.Rows[rowIndex].Cells[colIndex].Value;
+                    if (cellValue != null && cellValue.ToString().Equals(targetValue))
+                    {
+                        return (rowIndex, colIndex);
+                    }
+                }
+            }
+            return (-1, -1);
+        }
+        public int FindCellIndexByValueColumn(DataGridView dgv, string targetValue,string colName)
+        {
+            for (int rowIndex = 0; rowIndex < dgv.Rows.Count; rowIndex++)
+            {
+                object cellValue = dgv.Rows[rowIndex].Cells[colName].Value;
+                    if (cellValue != null && cellValue.ToString().Equals(targetValue))
+                    {
+                        return rowIndex;
+                    }
+            }
+            return -1;
+        }
+        private async void menuRotation_Click(object sender, EventArgs e)
+        {
+            ToolStripMenuItem menuItem = sender as ToolStripMenuItem;
+            if (menuItem == null) return;
+            try
+            {
+                int rotationAngle = Convert.ToInt32(menuItem.Tag);
+                List<string> selectedFiles = GetSelectedFiles();//如多选，显示第一个被选的
+                if (selectedFiles.Count > 0)
+                {
+                    await Task.Run(() =>
+                    {
+                        foreach (string filePath in selectedFiles)
+                        {
+                            //1 = 正常（不旋转）3 = 旋转180度 6 = 顺时针旋转90度 8 = 逆时针旋转90度
+                            PicRotation(filePath, rotationAngle);
+                            ShowImgInThumbnail(filePath);
+                            int GridCol = dataGridView1.Columns["ImageColumn"].Index;
+                            int GridRow = FindCellIndexByValueColumn(dataGridView1, filePath, "FullPath");
+                            DataGridViewCellValueEventArgs eGrid = new DataGridViewCellValueEventArgs(GridCol, GridRow);
+                            Image thumbnail = new GenerateThumbnail(false).GetThumbnailImg(filePath, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
+                            dataGridView1.Rows[GridRow].Cells[GridCol].Value = thumbnail;
+                            thumbnail.Dispose();
+                        }
+                    });
+                }
+
+            }
+            catch { }
         }
     }
 }

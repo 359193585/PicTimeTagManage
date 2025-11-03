@@ -58,7 +58,7 @@ namespace PicTimeTagManage
             initMesgStr = SingleFileProcess(commands, filePath);
         }
         /// <summary>
-        /// 处理文件列表selectedFiles里的文件，写入GPS数据
+        /// 处理文件列表selectedFiles里的文件，写入GPS或者datetime数据
         /// </summary>
         /// <param name="exifProcessName">exif程序指定</param>
         /// <param name="selectedFiles">文件列表</param>
@@ -90,6 +90,40 @@ namespace PicTimeTagManage
             //编组文件名，减少命令的行数
             _commands = CreateCommandsNew(commands, selectedFiles);
 
+        }
+        private string SingleFileProcessGpsEdit(List<string> selectedFiles)
+        {
+            this.Text = "写入GPS信息到文件 " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            string _rtn = $"共需要处理{selectedFiles.Count}个文件" + Environment.NewLine;
+            foreach (string file in selectedFiles)
+            {
+                _rtn += $"filename={file}" + Environment.NewLine;
+            }
+            _rtn += Environment.NewLine;
+            _rtn += "【重要提醒】点击“执行”按钮后，如果文件支持写入GPS信息，将把你输入的GPS坐标写入文件EXIF，当前你选择的文件的拍摄位置信息都将被更新为你刚刚输入的经纬度，请谨慎操作！"+ Environment.NewLine;
+            return _rtn;
+        }
+        private (string initMesgStr,string tempFileName) SingleFileProcessTimeEdit(List<string> selectedFiles)
+        {
+            this.Text = "逐个文件写入datetime信息 " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            string _rtn = $"共需要处理{selectedFiles.Count}个文件" + Environment.NewLine;
+            
+            string tempDir = "./";
+            string tempFileName = $"FileList{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+            string fullTempPath = Path.GetFullPath(Path.Combine(tempDir, tempFileName));
+            using (FileStream fs = new FileStream(fullTempPath, FileMode.Create, FileAccess.Write))
+            using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8)) // 推荐使用UTF8编码以支持更多字符
+            {
+                foreach (string file in selectedFiles)
+                {
+                    sw.WriteLine(file);
+                    _rtn += $"filename=\"{file}\"" + Environment.NewLine;
+                }
+            }
+            
+            _rtn += Environment.NewLine;
+            _rtn += "【重要提醒】点击“执行”按钮后，如果文件支持写入exif时间信息，将会把文件的修改日期作为照片原始日期写入exif,启动后无法停止，如果文件较多，会处理较长时间。如你不想此刻处理，请关闭窗口取消本次操作！" + Environment.NewLine;
+            return (_rtn, fullTempPath);
         }
 
         private List<string> CreateCommands(List<string> commands ,string tempFileName)
@@ -133,28 +167,6 @@ namespace PicTimeTagManage
                 }
             }
             return result;
-        }
-        private (string initMesgStr,string tempFileName) SingleFileProcessTimeEdit(List<string> selectedFiles)
-        {
-            this.Text = "逐个文件写入datetime信息 " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            string _rtn = $"共需要处理{selectedFiles.Count}个文件" + Environment.NewLine;
-            
-            string tempDir = "./";
-            string tempFileName = $"FileList{DateTime.Now:yyyyMMdd_HHmmss}.txt";
-            string fullTempPath = Path.GetFullPath(Path.Combine(tempDir, tempFileName));
-            using (FileStream fs = new FileStream(fullTempPath, FileMode.Create, FileAccess.Write))
-            using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8)) // 推荐使用UTF8编码以支持更多字符
-            {
-                foreach (string file in selectedFiles)
-                {
-                    sw.WriteLine(file);
-                    _rtn += $"filename=\"{file}\"" + Environment.NewLine;
-                }
-            }
-            
-            _rtn += Environment.NewLine;
-            _rtn += "【重要提醒】点击“执行”按钮后，如果文件支持写入exif时间信息，将会把文件的修改日期作为照片原始日期写入exif,启动后无法停止，如果文件较多，会处理较长时间。如你不想此刻处理，请关闭窗口取消本次操作！" + Environment.NewLine;
-            return (_rtn, fullTempPath);
         }
         private void ExportFileListToFile(List<string> selectedFiles)
         {
@@ -212,18 +224,6 @@ namespace PicTimeTagManage
         {
             txtOutput.Text = initMesgStr;
             txtOutput.Select(0, 0);
-        }
-        private string SingleFileProcessGpsEdit(List<string> selectedFiles)
-        {
-            this.Text = "写入GPS信息到文件 " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-            string _rtn = $"共需要处理{selectedFiles.Count}个文件" + Environment.NewLine;
-            foreach (string file in selectedFiles)
-            {
-                _rtn += $"filename={file}" + Environment.NewLine;
-            }
-            _rtn += Environment.NewLine;
-            _rtn += "【重要提醒】点击“执行”按钮后，如果文件支持写入GPS信息，将把你输入的GPS坐标写入文件EXIF，当前你选择的文件的拍摄位置信息都将被更新为你刚刚输入的经纬度，请谨慎操作！"+ Environment.NewLine;
-            return _rtn;
         }
         private string MultiFileProcess()
         {

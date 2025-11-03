@@ -35,6 +35,22 @@ namespace PicTimeTagManage
             {
                 components.Dispose();
             }
+            if (disposing)
+            {
+                // 释放托管资源
+                if (pictureBox1.Image != null)
+                {
+                    pictureBox1.Image.Dispose();
+                    pictureBox1.Image = null;
+                }
+
+                // 清理缓存中的所有图片
+                foreach (var keyValuePair in _thumbnailCache)
+                {
+                    keyValuePair.Value.Dispose();
+                }
+                _thumbnailCache.Clear();
+            }
             base.Dispose(disposing);
         }
 
@@ -61,6 +77,7 @@ namespace PicTimeTagManage
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.checkBoxThumbnail = new System.Windows.Forms.CheckBox();
             this.label5 = new System.Windows.Forms.Label();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
@@ -149,6 +166,7 @@ namespace PicTimeTagManage
             // 
             // dataGridView1
             // 
+            this.dataGridView1.AllowUserToAddRows = false;
             this.dataGridView1.AllowUserToDeleteRows = false;
             this.dataGridView1.AllowUserToOrderColumns = true;
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
@@ -245,6 +263,7 @@ namespace PicTimeTagManage
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.checkBoxThumbnail);
             this.panel1.Controls.Add(this.label5);
             this.panel1.Controls.Add(this.checkBox2);
             this.panel1.Controls.Add(this.checkBox1);
@@ -258,6 +277,18 @@ namespace PicTimeTagManage
             this.panel1.Size = new System.Drawing.Size(780, 69);
             this.panel1.TabIndex = 9;
             // 
+            // checkBoxThumbnail
+            // 
+            this.checkBoxThumbnail.AutoSize = true;
+            this.checkBoxThumbnail.Location = new System.Drawing.Point(676, 41);
+            this.checkBoxThumbnail.Name = "checkBoxThumbnail";
+            this.checkBoxThumbnail.Size = new System.Drawing.Size(90, 16);
+            this.checkBoxThumbnail.TabIndex = 11;
+            this.checkBoxThumbnail.Text = "显示略缩图 ";
+            this.toolTip1.SetToolTip(this.checkBoxThumbnail, "如果选中，读取exif信息会花费大量时间，造成界面假死，如非必须，刷新时取消选中。");
+            this.checkBoxThumbnail.UseVisualStyleBackColor = true;
+            this.checkBoxThumbnail.CheckedChanged += new System.EventHandler(this.checkBoxThumbnail_CheckedChanged);
+            // 
             // label5
             // 
             this.label5.AutoSize = true;
@@ -270,24 +301,26 @@ namespace PicTimeTagManage
             // checkBox2
             // 
             this.checkBox2.AutoSize = true;
-            this.checkBox2.Location = new System.Drawing.Point(623, 43);
+            this.checkBox2.Location = new System.Drawing.Point(577, 42);
             this.checkBox2.Name = "checkBox2";
             this.checkBox2.Size = new System.Drawing.Size(96, 16);
             this.checkBox2.TabIndex = 9;
             this.checkBox2.Text = "读取EXIF-GPS";
-            this.toolTip1.SetToolTip(this.checkBox2, "如果选中，读取exif信息会花费大量时间，造成界面假死，如非必须，刷新时取消选中。");
+            this.toolTip1.SetToolTip(this.checkBox2, "如果文件很多，选中该项exif信息会花费大量时间，造成界面假死，如非必须，刷新时取消选中。");
             this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.Visible = false;
             // 
             // checkBox1
             // 
             this.checkBox1.AutoSize = true;
-            this.checkBox1.Location = new System.Drawing.Point(515, 43);
+            this.checkBox1.Location = new System.Drawing.Point(472, 42);
             this.checkBox1.Name = "checkBox1";
             this.checkBox1.Size = new System.Drawing.Size(102, 16);
             this.checkBox1.TabIndex = 8;
             this.checkBox1.Text = "读取EXIF-日期";
-            this.toolTip1.SetToolTip(this.checkBox1, "如果选中，读取exif信息会花费大量时间，造成界面假死，如非必须，刷新时取消选中。");
+            this.toolTip1.SetToolTip(this.checkBox1, "如果文件很多，选中该项读取exif信息会花费大量时间，造成界面假死，如非必须，刷新时取消选中。");
             this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkBox1.Visible = false;
             // 
             // comboBoxFolders
             // 
@@ -454,7 +487,7 @@ namespace PicTimeTagManage
             this.btnFlash.TabIndex = 6;
             this.btnFlash.Text = "刷新当前文件信息";
             this.btnFlash.UseVisualStyleBackColor = true;
-            this.btnFlash.Click += new System.EventHandler(this.btnFlash_Click);
+            this.btnFlash.Click += new System.EventHandler(this.btnRefreshSingleFileMesg_Click);
             // 
             // btnModifyGps
             // 
@@ -471,7 +504,7 @@ namespace PicTimeTagManage
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(7, 58);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(311, 24);
+            this.label4.Size = new System.Drawing.Size(299, 24);
             this.label4.TabIndex = 4;
             this.label4.Text = "照片拍摄经纬度\r\n（会自动读取剪切板中文本,如匹配GPS数据,自动更新）";
             // 
@@ -589,6 +622,7 @@ namespace PicTimeTagManage
         private System.Windows.Forms.Button btnLeft90;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.PictureBox pictureBox2;
+        private System.Windows.Forms.CheckBox checkBoxThumbnail;
     }
 }
 
