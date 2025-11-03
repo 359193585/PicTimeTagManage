@@ -148,11 +148,20 @@
     <Compile Include="ExifBatchEdit.Designer.cs">
       <DependentUpon>ExifBatchEdit.cs</DependentUpon>
     </Compile>
+    <Compile Include="Form1.Thumbnail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormImageBrowser.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="FormLoadMap.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="FormLoadMap.Designer.cs">
       <DependentUpon>FormLoadMap.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form1.ExifRead.cs">
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="GenerateThumbnail.cs" />
     <Compile Include="GpsCoordinateValidator.cs" />
@@ -180,6 +189,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ExifBatchEdit.resx">
       <DependentUpon>ExifBatchEdit.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormImageBrowser.resx">
+      <DependentUpon>FormImageBrowser.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormLoadMap.resx">
       <DependentUpon>FormLoadMap.cs</DependentUpon>

@@ -49,15 +49,9 @@ namespace PicTimeTagManage
         /// <returns></returns>
         private (string fileNameStr, DateTime fileDatetime) ExifTimeToFilename(string exifTime)
         {
-            string[] splitStr = exifTime.Split(new char[] { ' ', ':' });
-            string fileNameStr = $"{splitStr[0]}-{splitStr[1]}-{splitStr[2]}_{splitStr[3]}{splitStr[4]}{splitStr[5]}";
-            DateTime fileDatetime = new DateTime(
-                                    int.Parse(splitStr[0]),
-                                    int.Parse(splitStr[1]),
-                                    int.Parse(splitStr[2]),
-                                    int.Parse(splitStr[3]),
-                                    int.Parse(splitStr[4]),
-                                    int.Parse(splitStr[5]));
+            StringDateInfo stringInfo = StringDateExtractor.ExtractDateInfo(exifTime);
+            DateTime fileDatetime = (DateTime)stringInfo.DateTime;
+            string fileNameStr = fileDatetime.ToString("yyyy-MM-dd_HHmmss");
             return (fileNameStr, fileDatetime);
         }
         private static void KillExistingExifTool(string exifProcessName)
@@ -107,36 +101,51 @@ namespace PicTimeTagManage
         }
 
         #region GetExifTimeGps的简单方法
+        private readonly object _exifToolLockExifTime = new object();
+        private readonly object _exifToolLockExifGps = new object();
         private string GetExifTime(string fullName)
         {
-            string receiveStr = "";
-            try
+            if (!File.Exists(fullName))
             {
-                ExifToolProcessor _exifToolProcessor = new ExifToolProcessor(exifProcessName, selectedFolderPath);
-                StringBuilder sb = new StringBuilder();
-                sb.AppendLine("-DateTimeOriginal");
-                sb.AppendLine($"\"{fullName}\"");
-                string arguments = sb.ToString().Replace(Environment.NewLine, " ");
-                receiveStr = _exifToolProcessor.ExecuteCommandBlocking(arguments);
-                string pattern = @"\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}";
-                Match match = Regex.Match(receiveStr, pattern);
-                return match.Success ? match.Value : "N/A";
+                Console.WriteLine($"文件不存在: {fullName}");
+                return "N/A (文件不存在)";
             }
-            catch (FileNotFoundException ex)
+            lock (_exifToolLockExifTime)
             {
-                MessageBox.Show(ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                string receiveStr = "";
+                try
+                {
+                    ExifToolProcessor _exifToolProcessor = new ExifToolProcessor(exifProcessName, selectedFolderPath);
+                    StringBuilder sb = new StringBuilder();
+                    sb.AppendLine("-DateTimeOriginal");
+                    sb.AppendLine($"\"{fullName}\"");
+                    string arguments = sb.ToString().Replace(Environment.NewLine, " ");
+                    receiveStr = _exifToolProcessor.ExecuteCommandBlocking(arguments);
+                    //receiveStr = _exifToolProcessor.ExecuteCommandAsync(arguments);
+                    string pattern = @"\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}";
+                    Match match = Regex.Match(receiveStr, pattern);
+                    return match.Success ? match.Value : "N/A match.error";
+                }
+                catch (FileNotFoundException ex)
+                {
+                    Debug.WriteLine($"读取文件{fullName}exiftime错误:{ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    string msgStr = $"GetExifTime 初始化ExifTool处理器时出错: {ex.Message}{ex.StackTrace}";
+                    Debug.WriteLine(msgStr);
+                }
+                return "N/A";
             }
-            catch (Exception ex)
-            {
-                string msgStr = $"GetExifTime 初始化ExifTool处理器时出错: {ex.Message}{ex.StackTrace}";
-                Debug.WriteLine(msgStr);
-            }
-            return "N/A";
         }
         private string GetExifTimeCondition(string fullName)
         {
             if (!checkBox1.Checked) return "";
             return GetExifTime(fullName);
+        }
+        private async Task<string> GetExifTimeAsync(string fullName)
+        {
+            return await Task.Run(() => GetExifTime(fullName));
         }
         private string GetExifTimeInRefresh(int limitExifCheck, string fullName)
         {
@@ -146,32 +155,35 @@ namespace PicTimeTagManage
         }
         private string GetExifGps(string fullName)
         {
-            string receiveStr;
-            try
+            lock (_exifToolLockExifGps)
             {
-                StringBuilder sb = new StringBuilder();
-                sb.AppendLine("-GPSLatitude");
-                sb.AppendLine("-GPSLongitude");
-                sb.AppendLine("-GPSLatitudeRef");
-                sb.AppendLine("-GPSLongitudeRef");
-                sb.AppendLine("-GPSAltitude");
-                sb.AppendLine($"\"{fullName}\"");
-                string arguments = sb.ToString().Replace(Environment.NewLine, " ");
-                ExifToolProcessor _exifToolProcessor = new ExifToolProcessor(exifProcessName, selectedFolderPath);
-                receiveStr = _exifToolProcessor.ExecuteCommandBlocking(arguments);
+                string receiveStr;
+                try
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.AppendLine("-GPSLatitude");
+                    sb.AppendLine("-GPSLongitude");
+                    sb.AppendLine("-GPSLatitudeRef");
+                    sb.AppendLine("-GPSLongitudeRef");
+                    sb.AppendLine("-GPSAltitude");
+                    sb.AppendLine($"\"{fullName}\"");
+                    string arguments = sb.ToString().Replace(Environment.NewLine, " ");
+                    ExifToolProcessor _exifToolProcessor = new ExifToolProcessor(exifProcessName, selectedFolderPath);
+                    receiveStr = _exifToolProcessor.ExecuteCommandBlocking(arguments);
 
-                return new MyMethod().FormatGPSStrB(receiveStr);
+                    return new MyMethod().FormatGPSStrB(receiveStr);
+                }
+                catch (FileNotFoundException ex)
+                {
+                    MessageBox.Show(ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                catch (Exception ex)
+                {
+                    string ErrMesg = $"GetExifGps 初始化ExifTool处理器时出错: {ex.Message}";
+                    Debug.WriteLine(ErrMesg);
+                }
+                return "N/A";
             }
-            catch (FileNotFoundException ex)
-            {
-                MessageBox.Show(ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            catch (Exception ex)
-            {
-                string ErrMesg = $"初始化ExifTool处理器时出错: {ex.Message}";
-                Debug.WriteLine(ErrMesg);
-            }
-            return "N/A";
         }
         private string GetExifGpsCondition(string fullName)
         {
@@ -265,25 +277,22 @@ namespace PicTimeTagManage
             }
             catch (Exception ex)
             {
-                string msgStr = $"GetExifTime 初始化ExifTool处理器时出错: {ex.Message}{ex.StackTrace}";
+                string msgStr = $"GetMultipleMetaData 初始化ExifTool处理器时出错: {ex.Message}{ex.StackTrace}";
                 Debug.WriteLine(msgStr);
             }
         }
         private void GetMultipleMetaDataAll(string filePath)
         {
-            // 获取EXIF信息
             PhotoMetadata photoMetadata = new PhotoMetadata();
             photoMetadata.FileCreateTime = File.GetCreationTime(filePath);
             photoMetadata.FileModifyTime = File.GetLastWriteTime(filePath);
             // 构建要执行的命令列表
             var sb = new StringBuilder();
             sb.AppendLine("-all");
-            //sb.AppendLine("-EXIF:all");
-            //sb.AppendLine("-XMP:all");
             sb.AppendLine($"\"{filePath}\"");
             string arguments = sb.ToString().Replace(Environment.NewLine, " ");
             string receiveStr = "";
-            //清空元数据显示的表格和文本框的内容
+            //清空单个文件的元数据显示表格和文本框的内容
             InitDataGridBindDataTable();//清空旧数据
             textBoxOrignTime.Text = "";
             textBoxGpsLocation.Text = "";
@@ -291,6 +300,7 @@ namespace PicTimeTagManage
             DataGridViewRow row = dataGridView1.SelectedRows[0];
             try
             {
+                // 获取EXIF信息
                 ExifToolProcessor _exifToolProcessor = new ExifToolProcessor(exifProcessName, Path.GetDirectoryName(filePath));
                 receiveStr = _exifToolProcessor.ExecuteCommandBlocking(arguments);
                 if (receiveStr == null) return;
@@ -302,12 +312,14 @@ namespace PicTimeTagManage
                     photoMetadata.Exif.DateTimeOriginal = stringDateInfo.DateTime;
                     //显示在可编辑文本框里
                     textBoxOrignTime.Text = exifToolOutputParser.GetValue("Date/Time Original");
-                    //显示到表格中
+                    //显示到单个文件元数据表格中
                     keyValueExifData.Rows.Add("文件创建时间", photoMetadata.FileCreateTime);
                     keyValueExifData.Rows.Add("文件修改时间", photoMetadata.FileModifyTime);
                     keyValueExifData.Rows.Add("--", "--");
                     keyValueExifData.Rows.Add("拍摄时间", exifToolOutputParser.GetValue("Date/Time Original"));
                     //显示到主文件信息列表中
+                    row.Cells["CreationTime"].Value = photoMetadata.FileCreateTime;
+                    row.Cells["LastWriteTime"].Value = photoMetadata.FileModifyTime;
                     row.Cells["ExifTime"].Value = exifToolOutputParser.GetValue("Date/Time Original");
                 }
                 catch { }
@@ -326,7 +338,7 @@ namespace PicTimeTagManage
 
                     //显示在可编辑文本框里
                     textBoxGpsLocation.Text = $"{Latitude:F6},{Longitude:F6}";
-                    //显示到表格中
+                    //显示到单个文件元数据表格中
                     keyValueExifData.Rows.Add("纬度", $"{photoMetadata.Exif.GPSLatitude:F6}");
                     keyValueExifData.Rows.Add("经度", $"{photoMetadata.Exif.GPSLongitude:F6}");
                     keyValueExifData.Rows.Add("--", "--");
@@ -337,7 +349,7 @@ namespace PicTimeTagManage
 
                 try
                 {
-                    //显示到表格中
+                    //显示到单文件元数据表格中
                     photoMetadata.Exif.Width = int.Parse(exifToolOutputParser.GetValue("Image Width"));
                     photoMetadata.Exif.Height = int.Parse(exifToolOutputParser.GetValue("Image Height"));
                     keyValueExifData.Rows.Add("宽度", $"{photoMetadata.Exif.Width}");
@@ -345,16 +357,6 @@ namespace PicTimeTagManage
                 }
                 catch { }
 
-
-                //keyValueExifData.Rows.Add("Exif:拍摄时间", exifToolOutputParser.GetValue("Date/Time Original"));
-                //keyValueExifData.Rows.Add("Exif:纬度", $"{Latitude:F6}");
-                //keyValueExifData.Rows.Add("Exif:经度", $"{Longitude:F6}");
-                //keyValueExifData.Rows.Add("--", "--");
-                //keyValueExifData.Rows.Add("XMP:拍摄时间", "");
-                //keyValueExifData.Rows.Add("XMP:纬度", "");
-                //keyValueExifData.Rows.Add("XMP:经度", "");
-
-                
             }
             catch (FileNotFoundException ex)
             {

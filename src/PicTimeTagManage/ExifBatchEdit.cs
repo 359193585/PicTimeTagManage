@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace PicTimeTagManage
 {
@@ -149,12 +148,9 @@ namespace PicTimeTagManage
                     string timeStr = result.DateTime.ToString();
                     return result;
                 }
-
             }
             catch { }
             return null;
-
-
         }
     }
 }

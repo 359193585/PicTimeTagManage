@@ -25,12 +25,13 @@ namespace PicTimeTagManage
 {
     public class FileInfoDisplay
     {
+        public int FixedRowNumber { get; set; }
         public string FileName { get; set; } = string.Empty;
         public DateTime CreationTime { get; set; }
         public DateTime LastWriteTime { get; set; }
         public string FullPath { get; set; } = string.Empty;
         public string ExifTime { get; set; }
-        public string ExifGPS { get; set; }
+        public string ExifGps { get; set; }
 
     }
     public class MyMethod
@@ -110,7 +111,8 @@ namespace PicTimeTagManage
         }
         public string FormatGPSStr(string SourceGPSStr)
         {
-            if (string.IsNullOrEmpty(SourceGPSStr)) return "N/A";
+            if (string.IsNullOrEmpty(SourceGPSStr)) 
+                return "N/A";
             string _return = SourceGPSStr.Replace(" ", "").Replace("\r\n", ";");
             string[] strings = SourceGPSStr.Replace("\r\n", "\r").Trim(new char[] { '\r', ' ' }).Split('\r');
 

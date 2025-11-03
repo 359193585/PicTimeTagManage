@@ -24,8 +24,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace PicTimeTagManage
@@ -76,8 +78,10 @@ namespace PicTimeTagManage
         {
             btnRefresh.Enabled = false;
             RefreshFileList();
+            _imageFiles = GetAllFilePath();
             btnRefresh.Enabled = true;
         }
+
         private void btnModifyGps_Click(object sender, EventArgs e)
         {
             string gpsStr = textBoxGpsLocation.Text;
@@ -119,7 +123,7 @@ namespace PicTimeTagManage
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void btnFlash_Click(object sender, EventArgs e)
+        private void btnRefreshSingleFileMesg_Click(object sender, EventArgs e)
         {
             AutoFlashAfterModify();
         }
@@ -142,7 +146,7 @@ namespace PicTimeTagManage
             {
                 string filePath = selectedFiles[0];
                 //1 = 正常（不旋转）3 = 旋转180度 6 = 顺时针旋转90度 8 = 逆时针旋转90度
-                PicRoattion(filePath, 8);
+                PicRotation(filePath, 8);
                 ShowImgInThumbnail(filePath);
                 GetMultipleMetaDataAll(filePath);
             }
@@ -154,7 +158,7 @@ namespace PicTimeTagManage
             {
                 string filePath = selectedFiles[0];
                 //1 = 正常（不旋转）3 = 旋转180度 6 = 顺时针旋转90度 8 = 逆时针旋转90度
-                PicRoattion(filePath, 6);
+                PicRotation(filePath, 6);
                 ShowImgInThumbnail(filePath);
                 GetMultipleMetaDataAll(filePath);
 
@@ -163,7 +167,7 @@ namespace PicTimeTagManage
         private void btnModifyOriginTime_Click(object sender, EventArgs e)
         {
             string timeStr = textBoxOrignTime.Text;
-            var match = Regex.Match(timeStr, @"(\d{4})[:](\d{2})[:](\d{2})[\ ](\d{2})[:](\d{2})[:](\d{2})");
+            var match = Regex.Match(timeStr, @"(\d{4})[:](\d{2})[:](\d{2})[\ ](\d{2})[:](\d{2})[:](\d{2})(\.\d+)?$");
             if (!match.Success || match.Groups.Count < 6)
             {
                 MessageBox.Show($"无效的时间格式 {nameof(timeStr)}");
@@ -176,30 +180,45 @@ namespace PicTimeTagManage
                                     int.Parse(match.Groups[4].Value),
                                     int.Parse(match.Groups[5].Value),
                                     int.Parse(match.Groups[6].Value));
+            string newDateTimeStr = dateTime.ToString("yyyy:MM:dd HH:mm:ss");
+            string newDateStr = dateTime.ToString("yyyy:MM:dd");
+            string newTimeStr = dateTime.ToString("HH:mm:ss");
             string customFormatted = dateTime.ToString("yyyy-MM-ddTHH:mm:ss");
-            string TimeCheck = "";//  @"-if ""not $AllDates""";
-
             List<string> selectedFiles = GetSelectedFiles();
+            List<string> needModifyFiles = new List<string>();
+            if (selectedFiles.Count > 1)
+            {
+                DialogResult dialog = MessageBox.Show($"你选择了多个文件，需要将多个文件的拍摄时间都修改为{customFormatted}吗？", "重要提醒", MessageBoxButtons.YesNo);
+                if (dialog == DialogResult.Yes)
+                {
+                    needModifyFiles = selectedFiles;
+                }
+                else if (dialog == DialogResult.No)
+                {
+                    needModifyFiles.Add(selectedFiles[0]);
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                needModifyFiles.Add(selectedFiles[0]);
+            }
             // 构建要执行的命令列表
             List<string> commands = new List<string> { };
-            foreach (string filename in selectedFiles)
-            {
-                var sb = new StringBuilder();
-                sb.AppendLine($"\"{TimeCheck}\"");
-                sb.AppendLine($"-EXIF:DateTimeOriginal=\"{timeStr}\"");
-                sb.AppendLine($"-XMP:DateTimeOriginal=\"{customFormatted}\"");
-                sb.AppendLine($"-Artist =\"leison\"");
-                sb.AppendLine($"-overwrite_original");
-                sb.AppendLine($"\"{filename}\"");
+            var sb = new StringBuilder();
+            sb.AppendLine($"-alldates=\"{newDateTimeStr}\"");
+            sb.AppendLine($"-GPSDateStamp=\"{newDateStr}\"");
+            sb.AppendLine($"-GPSTimeStamp=\"{newTimeStr}\"");
+            sb.AppendLine($"-Artist=\"leison\"");
+            sb.AppendLine($"-overwrite_original");
 
-                commands.Add(sb.ToString().Replace(Environment.NewLine, " "));
-                commands.Add(@"""-FileCreateDate<AllDates"" -overwrite_original """ + filename + @"""");
-                commands.Add(@"""-FileModifyDate<AllDates"" -overwrite_original """ + filename + @"""");
-            }
-            ExifToolProcess formEdit = new ExifToolProcess(selectedFiles, commands, exifProcessName);
+            commands.Add(sb.ToString().Replace(Environment.NewLine, " "));
+            commands.Add(@"""-FileCreateDate<AllDates"" ""-FileModifyDate<AllDates"" -overwrite_original ");
+            ExifToolProcess formEdit = new ExifToolProcess(commands, "", needModifyFiles, exifProcessName);
             formEdit.Show();
-            AutoFlashAfterModify();
-
         }
         private void CreateGpsWriteArguments(string gpsStr, out List<string> commands, bool isOverWrite)
         {
@@ -267,7 +286,7 @@ namespace PicTimeTagManage
                         string header = dataGridView.Columns[j].HeaderText;
                         // 将每个标题填充到该列计算出的宽度，并右对齐（PadLeft）
                         sw.Write(header.PadLeft(columnWidths[j]));
-                        // 在列之间添加一个空格作为分隔符（可选）
+                        // 在列之间添加一个空格作为分隔符
                         if (j < dataGridView.Columns.Count - 1) sw.Write(" ");
                     }
                     sw.WriteLine(); // 换行
@@ -282,10 +301,10 @@ namespace PicTimeTagManage
                             string cellValue = row.Cells[j].Value?.ToString() ?? "";
                             // 将每个单元格内容填充到该列计算出的宽度，并右对齐
                             sw.Write(cellValue.PadLeft(columnWidths[j]));
-                            // 在列之间添加一个空格作为分隔符（可选）
+                            // 在列之间添加一个空格作为分隔符
                             if (j < dataGridView.Columns.Count - 1) sw.Write(" ");
                         }
-                        sw.WriteLine(); // 换行
+                        sw.WriteLine(); 
                     }
                 }
                 //返回生成的临时文件完整路径
@@ -297,28 +316,29 @@ namespace PicTimeTagManage
                 return null;
             }
         }
-        private void ShowImgInThumbnail(string filePath)
+        private void ShowImgInThumbnail(string imagePath)
         {
+            pictureBox1.Image?.Dispose();
             if (pictureBox1.Image != null)
             {
                 var oldImage = pictureBox1.Image;
                 pictureBox1.Image = null; // 断开关联
                 oldImage.Dispose(); // 释放资源
             }
-            pictureBox1.Image = new GenerateThumbnail(false).GetThumbnailImg(filePath, pictureBox1.Width, pictureBox1.Height);
+            pictureBox1.Image = new GenerateThumbnail(false).GetThumbnailImg(imagePath, pictureBox1.Width, pictureBox1.Height);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            if (_thumbnailCache.ContainsKey(imagePath))
+            {
+                _thumbnailCache[imagePath]=  new GenerateThumbnail(false).GetThumbnailImg(imagePath, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
+            }
         }
         private void RefreshFileList(string directoryPath = null)
         {
             dataGridView1.SuspendLayout();
             try
             {
-                // 清空现有列表
                 _fileBindingList.Clear();
-
-                // 使用当前目录或文本框中的路径
                 string path = directoryPath ?? selectedFolderPath;
-
                 if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
                 {
                     MessageBox.Show("目录不存在或路径为空");
@@ -328,6 +348,7 @@ namespace PicTimeTagManage
                 var files = Directory.GetFiles(path);
 
                 int LimitExifCheck = 0;
+                int i = 1;  // 用于行号计数
                 // 添加到绑定列表
                 foreach (var file in files)
                 {
@@ -335,12 +356,11 @@ namespace PicTimeTagManage
                     FileInfo fileInfo = new FileInfo(file);
                     _fileBindingList.Add(new FileInfoDisplay
                     {
+                        FixedRowNumber = i++,
                         FileName = fileInfo.Name,
                         CreationTime = fileInfo.CreationTime,
                         LastWriteTime = fileInfo.LastWriteTime,
                         FullPath = fileInfo.FullName,
-                        ExifTime = GetExifTimeInRefresh(LimitExifCheck, fileInfo.FullName),
-                        ExifGPS = GetExifGpsInRefresh(LimitExifCheck, fileInfo.FullName)
                     });
                 }
                 label2.Text = $"共有{_fileBindingList.Count.ToString()}个文件";
@@ -376,6 +396,21 @@ namespace PicTimeTagManage
             }
             catch { }
             return selectedFiles;
+        }
+        private List<string> GetAllFilePath()
+        {
+            List<string> Filenames = new List<string>();
+            foreach (DataGridViewRow row in dataGridView1.Rows)
+            {
+                if (row.IsNewRow) continue;
+                // 第4列FullPath,存储文件完整路径
+                string filePath = row.Cells["FullPath"].Value.ToString();
+                if (File.Exists(filePath))
+                {
+                    Filenames.Add(filePath);
+                }
+            }
+            return Filenames;
         }
         private object GetPropertyValue(object obj, string propertyName)
         {
@@ -480,9 +515,6 @@ namespace PicTimeTagManage
         }
         private void dataGridView1_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
         {
-            string filePath = dataGridView1.SelectedRows[0].Cells["FullPath"].Value.ToString();
-            ShowImgInThumbnail(filePath);
-            GetMultipleMetaData(filePath);
         }
         private void dataGridView2_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
@@ -538,7 +570,7 @@ namespace PicTimeTagManage
                 UpdateFolderHistory(selectedFolderPath); //调整所选路径到最新
             }
         }
-        private void PicRoattion(string filePath, int angle)
+        private void PicRotation(string filePath, int angle)
         {
             // 构建要执行的命令列表
             StringBuilder sb = new StringBuilder();
@@ -559,13 +591,8 @@ namespace PicTimeTagManage
             }
             catch { }
 
-            //预先存储文件的时间属性
+            //缓存文件原始时间属性，以便后续恢复，再重新保存图片以应用旋转
             DateTime fileDatetime = File.GetCreationTime(filePath);
-
-            //List<string> commands = new List<string>{ cmd };
-            //ExifToolProcess formEdit = new ExifToolProcess(exifProcessName, Path.GetDirectoryName(filePath), commands, filePath);
-            //formEdit.Show();
-
             new GenerateThumbnail(true).ReSaveImage(filePath);
 
             // 修改文件时间属性至原先时间
@@ -585,7 +612,6 @@ namespace PicTimeTagManage
 
         private void OnClipboardUpdated()
         {
-            // 安全地在UI线程上执行
             if (InvokeRequired)
             {
                 Invoke(new Action(OnClipboardUpdated));
@@ -597,7 +623,6 @@ namespace PicTimeTagManage
                 if (Clipboard.ContainsText())
                 {
                     string copiedText = Clipboard.GetText();
-                    // 处理获取到的文本，显示在TextBox中
                     var result = GpsCoordinateValidator.ValidateGpsCoordinate(copiedText);
                     if (result.isValid) textBoxGpsLocation.Text = copiedText;
                     textBoxGpsLocation.ForeColor = Color.Red;
@@ -606,7 +631,6 @@ namespace PicTimeTagManage
             }
             catch (Exception ex)
             {
-                // 处理剪贴板访问冲突（其他进程可能正在使用剪贴板）
                 Console.WriteLine($"访问剪贴板失败: {ex.Message}");
             }
         }
@@ -615,6 +639,25 @@ namespace PicTimeTagManage
         }
         #endregion
 
+        private void btnThumbnail_Click(object sender, EventArgs e)
+        {
+            List<string> Filenames = GetAllFilePath();
+
+            ImageBrowserForm imageBrowserForm = new ImageBrowserForm(Filenames);
+            imageBrowserForm.Show();
+        }
+
+        private void checkBoxThumbnail_CheckedChanged(object sender, EventArgs e)
+        {
+                dataGridView1.Columns["ImageColumn"].Visible = checkBoxThumbnail.Checked;
+            if (checkBoxThumbnail.Checked)
+            {
+                _thumbnailCache.Clear();
+                _imageFiles = GetAllFilePath();
+            }
+        }
+
+       
     }
 }
 
