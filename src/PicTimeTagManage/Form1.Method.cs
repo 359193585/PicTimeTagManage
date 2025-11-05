@@ -100,7 +100,7 @@ namespace PicTimeTagManage
             }
         }
 
-        #region GetExifTimeGps的简单方法
+        #region Get Exif Time Gps的简单方法
         private readonly object _exifToolLockExifTime = new object();
         private readonly object _exifToolLockExifGps = new object();
         private string GetExifTime(string fullName)
@@ -110,7 +110,7 @@ namespace PicTimeTagManage
                 Console.WriteLine($"文件不存在: {fullName}");
                 return "N/A (文件不存在)";
             }
-            lock (_exifToolLockExifTime)
+            //lock (_exifToolLockExifTime)
             {
                 string receiveStr = "";
                 try
@@ -120,8 +120,9 @@ namespace PicTimeTagManage
                     sb.AppendLine("-DateTimeOriginal");
                     sb.AppendLine($"\"{fullName}\"");
                     string arguments = sb.ToString().Replace(Environment.NewLine, " ");
+                    Debug.WriteLine($"！！！！before excute fullName={fullName}");
                     receiveStr = _exifToolProcessor.ExecuteCommandBlocking(arguments);
-                    //receiveStr = _exifToolProcessor.ExecuteCommandAsync(arguments);
+                    Debug.WriteLine($"         fullName={fullName},receiveStr={receiveStr}");
                     string pattern = @"\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}";
                     Match match = Regex.Match(receiveStr, pattern);
                     return match.Success ? match.Value : "N/A match.error";
@@ -138,21 +139,45 @@ namespace PicTimeTagManage
                 return "N/A";
             }
         }
+        private async Task<string> GetExifTimeAsync(string fullName)
+        {
+            if (!File.Exists(fullName))
+            {
+                Console.WriteLine($"文件不存在: {fullName}");
+                return "N/A (文件不存在)";
+            }
+            string receiveStr = "";
+            try
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("-DateTimeOriginal");
+                sb.AppendLine($"\"{fullName}\"");
+                string arguments = sb.ToString().Replace(Environment.NewLine, " ");
+                //Debug.WriteLine($"！！！！before excute fullName={fullName}");
+                ExifToolProcessor _exifToolProcessor = new ExifToolProcessor(exifProcessName, selectedFolderPath);
+                receiveStr = await _exifToolProcessor.ExecuteCommandAsync(arguments);
+                //Debug.WriteLine($"         fullName={fullName},receiveStr={receiveStr}");
+                string pattern = @"\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}";
+                Match match = Regex.Match(receiveStr, pattern);
+                return match.Success ? match.Value : "N/A match.error";
+            }
+            catch (FileNotFoundException ex)
+            {
+                Debug.WriteLine($"读取文件{fullName}exiftime错误:{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                string msgStr = $"GetExifTime 初始化ExifTool处理器时出错: {ex.Message}{ex.StackTrace}";
+                Debug.WriteLine(msgStr);
+            }
+            return "N/A";
+        }
         private string GetExifTimeCondition(string fullName)
         {
             if (!checkBox1.Checked) return "";
-            return GetExifTime(fullName);
+            return "";// GetExifTime(fullName);
         }
-        private async Task<string> GetExifTimeAsync(string fullName)
-        {
-            return await Task.Run(() => GetExifTime(fullName));
-        }
-        private string GetExifTimeInRefresh(int limitExifCheck, string fullName)
-        {
-            if (!checkBox1.Enabled) return "";
-            string NoticeMesg = "默认只自动读取前20个文件";
-            return limitExifCheck <= 20 ? GetExifTimeCondition(fullName) : NoticeMesg;
-        }
+       
         private string GetExifGps(string fullName)
         {
             lock (_exifToolLockExifGps)
@@ -184,6 +209,29 @@ namespace PicTimeTagManage
                 }
                 return "N/A";
             }
+        }
+        private async Task<string> GetExifInfoAsync(string fullName, string arguments, string script)
+        {
+            if (!File.Exists(fullName))
+            {
+                Console.WriteLine($"文件不存在: {fullName}");
+                return "N/A (文件不存在)";
+            }
+            try
+            {
+                ExifToolProcessor _exifToolProcessor = new ExifToolProcessor(exifProcessName, selectedFolderPath);
+                return await _exifToolProcessor.ExecuteCommandAsync(arguments);
+            }
+            catch (FileNotFoundException ex)
+            {
+                Debug.WriteLine($"读取文件{fullName} {script} 错误:{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                string ErrMesg = $"{script} 初始化ExifTool处理器时出错: {ex.Message}";
+                Debug.WriteLine(ErrMesg);
+            }
+            return "N/A";
         }
         private string GetExifGpsCondition(string fullName)
         {
@@ -283,6 +331,7 @@ namespace PicTimeTagManage
         }
         private void GetMultipleMetaDataAll(string filePath)
         {
+            lblSpendingName.Text = Path.GetFileName(filePath);
             PhotoMetadata photoMetadata = new PhotoMetadata();
             photoMetadata.FileCreateTime = File.GetCreationTime(filePath);
             photoMetadata.FileModifyTime = File.GetLastWriteTime(filePath);

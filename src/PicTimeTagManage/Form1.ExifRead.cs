@@ -19,11 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace PicTimeTagManage
@@ -35,7 +30,7 @@ namespace PicTimeTagManage
         // 缓存已读取的GGPS值，键为文件路径
         private Dictionary<string, string> _exifGpsCache = new Dictionary<string, string>();
         private readonly object _exifToolLock = new object();
-        private async Task ReadExifTime(string imagePath, int rowIndex)
+        private async Task ReadExifTimeAsync(string imagePath, int rowIndex)
         {
             try
             {
@@ -143,7 +138,7 @@ namespace PicTimeTagManage
             //catch { }
             #endregion
         }
-        private async Task ReadExifGps(string imagePath, int rowIndex)
+        private async Task ReadExifGpsAsync(string imagePath, int rowIndex)
         {
             try
             {

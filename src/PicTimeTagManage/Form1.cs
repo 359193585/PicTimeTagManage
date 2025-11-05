@@ -54,7 +54,7 @@ namespace PicTimeTagManage
         private string exifProcessName = "exiftool.exe";  //经参数传递，全局都使用
         private string selectedFolderPath = "";
 
-        private string pendingFilePath; // 用于暂存待读取的文件路径
+        private string pendingFilePath; // 全局缓存当前选中行的文件路径
 
         private string _lastSortedColumn = string.Empty;
         private SortOrder _currentSortDirection = SortOrder.None;
@@ -91,7 +91,6 @@ namespace PicTimeTagManage
             exifTool.ExecuteCommand(commands[0]+ $" \"{pendingFilePath}\"");
             textBoxGpsLocation.ForeColor = Color.Black;
             AutoFlashAfterModify();
-
         }
         private void btnSelectFolder_Click(object sender, EventArgs e)
         {
@@ -347,12 +346,14 @@ namespace PicTimeTagManage
 
                 var files = Directory.GetFiles(path);
 
-                int LimitExifCheck = 0;
                 int i = 1;  // 用于行号计数
                 // 添加到绑定列表
                 foreach (var file in files)
                 {
-                    LimitExifCheck++;
+                    if (!GlobalFileFilters.IsImageFile(file))
+                    {
+                        continue; // 跳过非图片文件
+                    }
                     FileInfo fileInfo = new FileInfo(file);
                     _fileBindingList.Add(new FileInfoDisplay
                     {

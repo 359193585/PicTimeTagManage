@@ -46,7 +46,7 @@ namespace PicTimeTagManage
             if (e.RowIndex < 0 || e.RowIndex >= _imageFiles.Count) return;
             string imagePath = _imageFiles[e.RowIndex];
             string columnName = dataGridView1.Columns[e.ColumnIndex].Name;
-            Debug.WriteLine($"columnName:{columnName}");
+            //Debug.WriteLine($"columnName:{columnName}");
             if (checkBoxThumbnail.Checked && columnName == "ImageColumn")
             {
                 // 如果缓存中已有缩略图，直接使用
@@ -60,14 +60,13 @@ namespace PicTimeTagManage
                     e.Value = Properties.Resources.LoadingPlaceholder;
                     // 异步加载和生成缩略图
                     _ = LoadThumbnailAsync(imagePath, e.RowIndex); // 使用弃元，不等待
-                    //Application.DoEvents();
                 }
-                //// 遍历所有现有行，设置行高
+                //遍历所有现有行，设置行高
                 foreach (DataGridViewRow row in dataGridView1.Rows) row.Height = THUMBNAIL_HEIGHT + 10;
-                // 设置当前行高
+                // 仅调整当前行高
                 //dataGridView1.Rows[e.RowIndex].Height = THUMBNAIL_HEIGHT + 10;
             }
-            if (checkBox1.Checked && columnName== "ExifTime")
+            if (checkBox1.Checked && columnName == "ExifTime")
             {
                 // 如果缓存中有，直接使用
                 if (_exifTimeCache.ContainsKey(imagePath))
@@ -75,8 +74,7 @@ namespace PicTimeTagManage
                     _fileBindingList[e.RowIndex].ExifTime = _exifTimeCache[imagePath];
                 }
                 else
-                    _ = ReadExifTime(imagePath, e.RowIndex); // 使用弃元，不等待
-
+                    _ = ReadExifTimeAsync(imagePath, e.RowIndex); // 使用弃元，不等待
             }
             if (checkBox2.Checked && columnName == "ExifGPS")
             {
@@ -86,7 +84,7 @@ namespace PicTimeTagManage
                     _fileBindingList[e.RowIndex].ExifGps = _exifGpsCache[imagePath];
                 }
                 else
-                    _ = ReadExifGps(imagePath, e.RowIndex); // 使用弃元，不等待
+                    _ = ReadExifGpsAsync(imagePath, e.RowIndex); // 使用弃元，不等待
             }
            
         }

@@ -22,7 +22,9 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 namespace PicTimeTagManage
@@ -50,75 +52,158 @@ namespace PicTimeTagManage
             string exportedFilePath = ExportDataGridToTemporaryTxt(dataGridView1);
             new MyMethod().OpenFileDirectory(exportedFilePath);
         }
+
         /// <summary>
         /// 使用exif日期修改所选文件的文件名
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void menuExifTimeModifyFilename_Click(object sender, EventArgs e)
+        private async void menuExifTimeModifyFilename_Click(object sender, EventArgs e)
         {
             if (dataGridView1.SelectedRows.Count == 0)
             {
                 MessageBox.Show("请先选择要处理的文件", "提醒");
                 return;
             }
+            if (dataGridView1.SelectedRows.Count > 20)
+            {
+                DialogResult dialogResult20 = MessageBox.Show("读取exif时间是耗时操作，请每次选择不要超过20个文件,如要继续，请选择 YES 。", "提醒", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (dialogResult20 != DialogResult.Yes) return;
+            }
             string s1 = $"请确认你选择的{dataGridView1.SelectedRows.Count}个文件的exif日期准确，再点击确定修改！";
             DialogResult dialogResult = MessageBox.Show(s1, "重要提醒", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (dialogResult == DialogResult.Yes)
+            if (dialogResult != DialogResult.Yes) return;
+
+            _cancellationTokenSource = new CancellationTokenSource();
+            try
             {
-                try
+                var selectedRows = dataGridView1.SelectedRows.Cast<DataGridViewRow>()
+                              .OrderBy(r => r.Index)
+                              .ToList();
+                await Task.Run(() =>
                 {
-                    foreach (DataGridViewRow row in dataGridView1.SelectedRows)
+                    for (int i = 0; i < selectedRows.Count; i++)
                     {
-                        if (row.IsNewRow) continue;
-                        string filePath = row.Cells["FullPath"].Value?.ToString();// 第4列FullPath,存储文件完整路径
-                        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) continue;
-                        FileInfoDisplay fileInfoDisplay = new FileInfoDisplay()
+                        var row = selectedRows[i];
+                        _ = ModifyNameByExifTime(row, i, selectedRows.Count);
+                        if (i % 10 == 0)
                         {
-                            FullPath = filePath,
-                            ExifTime = row.Cells["ExifTime"].Value.ToString()
-                        };
-                        if (fileInfoDisplay.ExifTime == "" || fileInfoDisplay.ExifTime == "N/A")
-                        {
-                            fileInfoDisplay.ExifTime = GetExifTime(filePath);
-                        }
-                        if (fileInfoDisplay.ExifTime == "" || fileInfoDisplay.ExifTime == "N/A") continue;
-
-                        (string newFileNameStr, DateTime fileDatetime) = ExifTimeToFilename(fileInfoDisplay.ExifTime);
-                        string newFullName = Path.GetFullPath(Path.GetDirectoryName(filePath) + "\\" + newFileNameStr);
-                        try
-                        {
-                            // 修改文件时间属性
-                            File.SetCreationTime(filePath, fileDatetime);
-                            File.SetLastWriteTime(filePath, fileDatetime);
-                            // 检查文件名唯一性后，重命名文件
-                            string newFilePath = GenerateUniqueFilePath(Path.GetDirectoryName(filePath), newFullName, Path.GetExtension(filePath));
-                            File.Move(filePath, newFilePath);
-
-
-                            //修改后的信息在表格里更新
-                            row.Cells["FileName"].Value = Path.GetFileName(newFilePath);
-                            row.Cells["FullPath"].Value = newFilePath;
-                            // 更新数据源中的对象
-                            if (row.DataBoundItem is FileInfoDisplay fileInfo)
-                            {
-                                fileInfo.FileName = Path.GetFileName(newFilePath);
-                                fileInfo.FullPath = newFilePath;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine(ex.Message);
+                            Task.Delay(2000);
                         }
                     }
+
+                    return Task.CompletedTask;
+                }, _cancellationTokenSource.Token
+                );
+                MessageBox.Show("处理将在后台继续，如果信息不准确，请稍后重新调整！", "提醒");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+
+        }
+        private async Task<object> ReadExifTimeGpsInfo(DataGridViewRow row, int currentIndex, int totalCount)
+        {
+            if (row.IsNewRow) return Task.FromResult<object>(false);
+            string filePath = row.Cells["FullPath"].Value?.ToString();
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return Task.FromResult<object>(false);
+
+            //origin time
+            string exifTime = await Task.Run(() => GetExifTimeAsync(filePath));
+            //GPS arguments
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("-GPSLatitude");
+            sb.AppendLine("-GPSLongitude");
+            sb.AppendLine("-GPSLatitudeRef");
+            sb.AppendLine("-GPSLongitudeRef");
+            sb.AppendLine("-GPSAltitude");
+            sb.AppendLine($"\"{filePath}\"");
+            string arguments = sb.ToString().Replace(Environment.NewLine, " ");
+
+            string exifGps = await Task.Run(() => GetExifInfoAsync(filePath, arguments, "GetExifGps"));
+            this.BeginInvoke(new Action(() =>
+            {
+                row.Cells["ExifTime"].Value = exifTime;
+                row.Cells["ExifGPS"].Value = new MyMethod().FormatGPSStrB(exifGps);
+            }));
+            return Task.FromResult<object>(true);
+        }
+        private async Task<object> ReadExifTimeGpsInfoA(DataGridViewRow row, int currentIndex, int totalCount)
+        {
+            if (row.IsNewRow) return Task.FromResult<object>(false);
+            string filePath = row.Cells["FullPath"].Value?.ToString();
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return Task.FromResult<object>(false);
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("-all");
+            sb.AppendLine($"\"{filePath}\"");
+            string arguments = sb.ToString().Replace(Environment.NewLine, " ");
+
+            string receiveStr = await Task.Run(() => GetExifInfoAsync(filePath, arguments, "Get All Exif"));
+            ExiftToolOutputParser exifToolOutputParser = new ExiftToolOutputParser(receiveStr);
+            string exifTime = exifToolOutputParser.GetValue("Date/Time Original");
+            (double Latitude, double Longitude) = GpsConverter.ConvertToSignedDecimal(
+                       exifToolOutputParser.GetValue("GPS Latitude"),
+                       exifToolOutputParser.GetValue("GPS Latitude Ref"),
+                       exifToolOutputParser.GetValue("GPS Longitude"),
+                       exifToolOutputParser.GetValue("GPS Longitude Ref"));
+            string exifGps = $"{Latitude:F6},{Longitude:F6}";
+            this.BeginInvoke(new Action(() =>
+            {
+                row.Cells["ExifTime"].Value = exifTime;
+                row.Cells["ExifGPS"].Value = exifGps;
+                progressBar1.Value +=1;
+            }));
+            return Task.FromResult<object>(true);
+        }
+        private async Task<object> ModifyNameByExifTime(DataGridViewRow row, int currentIndex, int totalCount)
+        {
+            if (row.IsNewRow) return Task.FromResult<object>(false);
+            string filePath = row.Cells["FullPath"].Value?.ToString();// FullPath,存储文件完整路径
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return Task.FromResult<object>(false);
+            FileInfoDisplay fileInfoDisplay = new FileInfoDisplay()
+            {
+                FullPath = filePath,
+                ExifTime = row.Cells["ExifTime"].Value == null ? "" : row.Cells["ExifTime"].Value.ToString()
+            };
+            if (fileInfoDisplay.ExifTime == "" || fileInfoDisplay.ExifTime == "N/A")
+            {
+                fileInfoDisplay.ExifTime =  await Task.Run(() => GetExifTimeAsync(filePath));
+            }
+            if (fileInfoDisplay.ExifTime == "" || fileInfoDisplay.ExifTime == "N/A") return Task.FromResult<object>(false);
+
+            //lock (_exifToolLockExifTime)
+            {
+                (string newFileNameStr, DateTime fileDatetime) = ExifTimeToFilename(fileInfoDisplay.ExifTime);
+                string newFullName = Path.GetFullPath(Path.GetDirectoryName(filePath) + "\\" + newFileNameStr);
+                try
+                {
+                    // 修改文件时间属性
+                    File.SetCreationTime(filePath, fileDatetime);
+                    File.SetLastWriteTime(filePath, fileDatetime);
+                    // 检查文件名唯一性后，重命名文件
+                    string newFilePath = GenerateUniqueFilePath(Path.GetDirectoryName(filePath), newFullName, Path.GetExtension(filePath));
+                    File.Move(filePath, newFilePath);
+
+                    //修改后的信息在表格里更新
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        row.Cells["FileName"].Value = Path.GetFileName(newFilePath);
+                        row.Cells["FullPath"].Value = newFilePath;
+                        row.Cells["ExifTime"].Value = fileInfoDisplay.ExifTime;
+                    }));
+
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine(ex.Message);
                 }
             }
-            MessageBox.Show("本次处理结束，如果信息不准确，请重新调整！", "提醒");
+            
+            return Task.FromResult<object>(true);
         }
+
         /// <summary>
         /// 将选中的文件，从文件名猜测时间后，修改文件的创建时间,
         /// </summary>
@@ -135,10 +220,12 @@ namespace PicTimeTagManage
             FormBatchEditFileName formBatchEditFileName = new FormBatchEditFileName(selectedFiles);
             formBatchEditFileName.Show();
         }
-        private void menuReadTimeGpsFromExif_Click(object sender, EventArgs e)
+        private async void menuReadTimeGpsFromExif_Click(object sender, EventArgs e)
         {
             // 获取选中的行
-            var selectedRows = dataGridView1.SelectedRows;
+            var selectedRows = dataGridView1.SelectedRows.Cast<DataGridViewRow>()
+                                      .OrderBy(r => r.Index)
+                                      .ToList();
             if (selectedRows.Count == 0)
             {
                 MessageBox.Show("请先选择要处理的行");
@@ -148,37 +235,48 @@ namespace PicTimeTagManage
             {
                 string Mesg = $"你选择了{selectedRows.Count}个文件，读取文件exif信息将非常耗时，界面会假死，请耐心等待！如果你不想继续操作，请点击按钮“否”。";
                 DialogResult dialogResult = MessageBox.Show(Mesg, "重要提醒", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                if (dialogResult == DialogResult.Yes)
-                {
-                }
-                else
-                {
-                    return;
-                }
+                if (dialogResult != DialogResult.Yes) return;
             }
             // 禁用UI更新以提高性能
-            dataGridView1.SuspendLayout();
+            //dataGridView1.SuspendLayout();
+            _cancellationTokenSource = new CancellationTokenSource();
+            progressBar1.Minimum = 0;
+            progressBar1.Maximum = selectedRows.Count;
+            progressBar1.Value = 0;
             try
             {
-                foreach (DataGridViewRow row in selectedRows)
+                await Task.Run(async () =>
                 {
-                    if (row.IsNewRow) continue;
+                    for (int i = 0; i < selectedRows.Count; i++)
+                    {
+                        var row = selectedRows[i];
+                        _ = ReadExifTimeGpsInfoA(row,i,selectedRows.Count);
+                       
+                        if (i % 10 == 0)
+                        {
+                            //await Task.Delay(2000);
+                        }
+                    }
+                    return Task.CompletedTask;
+                }, _cancellationTokenSource.Token
+                );
+            }
 
-                    // 获取文件路径
-                    string filePath = row.Cells["FullPath"].Value?.ToString();
-                    if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                        continue;
+            //    //// 获取EXIF信息
+            //    //var exifTime = GetExifTime(filePath);
+            //    //var exifGps = GetExifGps(filePath);
+            //    ////更新DataGridView中的值
+            //    //row.Cells["ExifTime"].Value = exifTime;
+            //    //row.Cells["ExifGPS"].Value = exifGps;
 
-                    //// 获取EXIF信息
-                    //var exifTime = GetExifTime(filePath);
-                    //var exifGps = GetExifGps(filePath);
-                    ////更新DataGridView中的值
-                    //row.Cells["ExifTime"].Value = exifTime;
-                    //row.Cells["ExifGPS"].Value = exifGps;
+            //    //_ = ReadExifTime(filePath, row.Index); //异步 
+            //    //_ = ReadExifGps(filePath, row.Index);
+            //    //
 
-                    _ = ReadExifTime(filePath, row.Index); //异步 
-                    _ = ReadExifGps(filePath, row.Index);   
-                }
+
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
             }
             finally
             {

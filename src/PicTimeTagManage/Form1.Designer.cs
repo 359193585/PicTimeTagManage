@@ -88,7 +88,9 @@ namespace PicTimeTagManage
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.splitContainer4 = new System.Windows.Forms.SplitContainer();
             this.dataGridView2 = new System.Windows.Forms.DataGridView();
+            this.lblSpendingName = new System.Windows.Forms.Label();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.btnRight90 = new System.Windows.Forms.Button();
             this.btnLeft90 = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
@@ -399,6 +401,7 @@ namespace PicTimeTagManage
             // splitContainer4.Panel1
             // 
             this.splitContainer4.Panel1.Controls.Add(this.dataGridView2);
+            this.splitContainer4.Panel1.Controls.Add(this.lblSpendingName);
             // 
             // splitContainer4.Panel2
             // 
@@ -413,16 +416,27 @@ namespace PicTimeTagManage
             this.dataGridView2.AllowUserToOrderColumns = true;
             this.dataGridView2.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dataGridView2.Location = new System.Drawing.Point(0, 0);
+            this.dataGridView2.Location = new System.Drawing.Point(0, 12);
             this.dataGridView2.Name = "dataGridView2";
             this.dataGridView2.ReadOnly = true;
             this.dataGridView2.RowTemplate.Height = 23;
-            this.dataGridView2.Size = new System.Drawing.Size(282, 278);
+            this.dataGridView2.Size = new System.Drawing.Size(282, 266);
             this.dataGridView2.TabIndex = 1;
             this.dataGridView2.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.dataGridView2_CellFormatting);
             // 
+            // lblSpendingName
+            // 
+            this.lblSpendingName.AutoSize = true;
+            this.lblSpendingName.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblSpendingName.Location = new System.Drawing.Point(0, 0);
+            this.lblSpendingName.Name = "lblSpendingName";
+            this.lblSpendingName.Size = new System.Drawing.Size(65, 12);
+            this.lblSpendingName.TabIndex = 2;
+            this.lblSpendingName.Text = "FileName：";
+            // 
             // panel4
             // 
+            this.panel4.Controls.Add(this.progressBar1);
             this.panel4.Controls.Add(this.btnRight90);
             this.panel4.Controls.Add(this.btnLeft90);
             this.panel4.Controls.Add(this.label6);
@@ -439,6 +453,14 @@ namespace PicTimeTagManage
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(408, 278);
             this.panel4.TabIndex = 2;
+            // 
+            // progressBar1
+            // 
+            this.progressBar1.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.progressBar1.Location = new System.Drawing.Point(0, 265);
+            this.progressBar1.Name = "progressBar1";
+            this.progressBar1.Size = new System.Drawing.Size(408, 13);
+            this.progressBar1.TabIndex = 11;
             // 
             // btnRight90
             // 
@@ -574,6 +596,7 @@ namespace PicTimeTagManage
             this.splitContainer3.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.splitContainer4.Panel1.ResumeLayout(false);
+            this.splitContainer4.Panel1.PerformLayout();
             this.splitContainer4.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer4)).EndInit();
             this.splitContainer4.ResumeLayout(false);
@@ -623,6 +646,8 @@ namespace PicTimeTagManage
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.CheckBox checkBoxThumbnail;
+        private System.Windows.Forms.Label lblSpendingName;
+        private System.Windows.Forms.ProgressBar progressBar1;
     }
 }
 

@@ -17,6 +17,7 @@
 *********************************************/
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
@@ -30,8 +31,8 @@ namespace PicTimeTagManage
         public DateTime CreationTime { get; set; }
         public DateTime LastWriteTime { get; set; }
         public string FullPath { get; set; } = string.Empty;
-        public string ExifTime { get; set; }
-        public string ExifGps { get; set; }
+        public string ExifTime { get; set; } = string.Empty;
+        public string ExifGps { get; set; } = string.Empty;
 
     }
     public class MyMethod
@@ -119,5 +120,26 @@ namespace PicTimeTagManage
             return _return;
         }
     }
-   
+    public static class GlobalFileFilters
+    {
+        // 集中管理图片文件扩展名（不含点号，不区分大小写）
+        public static readonly HashSet<string> ImageExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "jpg", "jpeg", "png", "gif", "bmp", "tiff", "tif",
+        "webp", "heic", "heif", "ico", "svg", "raw", "cr2", "nef", "arw"
+    };
+
+        public static bool IsImageFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                return false;
+
+            string extension = Path.GetExtension(filePath);
+            if (string.IsNullOrEmpty(extension))
+                return false;
+
+            // 去除点号，并与已知图片扩展名比较
+            return ImageExtensions.Contains(extension.TrimStart('.'));
+        }
+    }
 }
