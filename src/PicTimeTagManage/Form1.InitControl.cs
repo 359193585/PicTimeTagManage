@@ -17,10 +17,7 @@
 *********************************************/
 
 using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Drawing;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace PicTimeTagManage
@@ -130,14 +127,14 @@ namespace PicTimeTagManage
                 Name = "CreationTime",
                 DataPropertyName = "CreationTime",
                 HeaderText = "创建时间",
-                Width = 150
+                Width = 120
             });
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "LastWriteTime",
                 DataPropertyName = "LastWriteTime",
                 HeaderText = "修改时间",
-                Width = 150
+                Width = 120
             });
 
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
@@ -145,14 +142,14 @@ namespace PicTimeTagManage
                 Name = "ExifTime",
                 DataPropertyName = "ExifTime",
                 HeaderText = "原始拍摄时间",
-                Width = 150
+                Width = 120
             });
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "ExifGPS",
                 DataPropertyName = "ExifGPS",
                 HeaderText = "GPS位置",
-                Width = 150
+                Width = 120
             }); 
             dataGridView1.Columns.Add(new DataGridViewImageColumn
             {
@@ -174,9 +171,9 @@ namespace PicTimeTagManage
 
             dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView1.MultiSelect = true; // 启用多行选择
-            dataGridView1.CellClick += dataGridView1_CellClick;
+            dataGridView1.CellClick += DataGridView1_CellClick;
             // 订阅DataGridView的选择改变事件
-            dataGridView1.SelectionChanged += dataGridView1_SelectionChanged;
+            dataGridView1.SelectionChanged += DataGridView1_SelectionChanged;
             SetupSelectionTimer();
             dataGridView1.DataSource = _fileBindingList;
 
@@ -185,6 +182,12 @@ namespace PicTimeTagManage
             dataGridView1.VirtualMode = true;
             dataGridView1.CellValueNeeded += DataGridView1_CellValueNeeded; // 为需要显示的单元格提供数据
             dataGridView1.Scroll += DataGridView1_Scroll;
+
+            // 通过反射设置DataGridView的双缓冲属性为true
+            Type dgvType = dataGridView1.GetType();
+            System.Reflection.PropertyInfo pi = dgvType.GetProperty("DoubleBuffered",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            pi.SetValue(dataGridView1, true, null);
         }
         private void InitDataGridBindDataTable()
         {

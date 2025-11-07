@@ -27,6 +27,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -34,7 +35,7 @@ namespace PicTimeTagManage
 {
    
     public partial class Form1 : Form
-    {
+    {        
         #region 用于调用Windows API的辅助类
         internal static class NativeMethods
         {
@@ -47,6 +48,8 @@ namespace PicTimeTagManage
             public static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
         }
         #endregion
+        
+        private readonly IThumbnailService _thumbnailService;
         private BindingList<FileInfoDisplay> _fileBindingList = new BindingList<FileInfoDisplay>();
         private BindingList<PhotoMetadata> _exifMetadataBindingList = new BindingList<PhotoMetadata>();
         private DataTable keyValueExifData = new DataTable();
@@ -55,11 +58,17 @@ namespace PicTimeTagManage
         private string selectedFolderPath = "";
 
         private string pendingFilePath; // 全局缓存当前选中行的文件路径
+        private int pendingRowIndex = -1; // 全局缓存当前选中行的索引
 
         private string _lastSortedColumn = string.Empty;
         private SortOrder _currentSortDirection = SortOrder.None;
-        public Form1()
+        public Form1(IThumbnailService thumbnailService)
         {
+            _thumbnailService = thumbnailService;
+            if (_thumbnailService is ThumbnailService serviceImpl)
+                serviceImpl.AttachToCurrentSynchronizationContext(SynchronizationContext.Current);
+            _thumbnailService.ThumbnailLoaded += ThumbnailService_ThumbnailLoaded; //订阅缩略图加载完成事件
+
             InitializeComponent();
             InitDataGrid();
             InitContextMenu();
@@ -133,7 +142,7 @@ namespace PicTimeTagManage
             if (selectedFiles.Count > 0)
             {
                 string filePath = selectedFiles[0];
-                ShowImgInThumbnail(filePath);
+                ShowBigImgThumbnail(filePath);
                 GetMultipleMetaDataAll(filePath);
             }
         }
@@ -146,7 +155,7 @@ namespace PicTimeTagManage
                 string filePath = selectedFiles[0];
                 //1 = 正常（不旋转）3 = 旋转180度 6 = 顺时针旋转90度 8 = 逆时针旋转90度
                 PicRotation(filePath, 8);
-                ShowImgInThumbnail(filePath);
+                ShowBigImgThumbnail(filePath);
                 GetMultipleMetaDataAll(filePath);
             }
         }
@@ -158,7 +167,7 @@ namespace PicTimeTagManage
                 string filePath = selectedFiles[0];
                 //1 = 正常（不旋转）3 = 旋转180度 6 = 顺时针旋转90度 8 = 逆时针旋转90度
                 PicRotation(filePath, 6);
-                ShowImgInThumbnail(filePath);
+                ShowBigImgThumbnail(filePath);
                 GetMultipleMetaDataAll(filePath);
 
             }
@@ -315,7 +324,7 @@ namespace PicTimeTagManage
                 return null;
             }
         }
-        private void ShowImgInThumbnail(string imagePath)
+        private void ShowBigImgThumbnail(string imagePath)
         {
             pictureBox1.Image?.Dispose();
             if (pictureBox1.Image != null)
@@ -326,10 +335,17 @@ namespace PicTimeTagManage
             }
             pictureBox1.Image = new GenerateThumbnail(false).GetThumbnailImg(imagePath, pictureBox1.Width, pictureBox1.Height);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
-            if (_thumbnailCache.ContainsKey(imagePath))
+            try
             {
-                _thumbnailCache[imagePath]=  new GenerateThumbnail(false).GetThumbnailImg(imagePath, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
+                _thumbnailService.UpdateThumbnailAsync(pendingFilePath, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, pendingRowIndex);
+                {
+                    int imageColIndex = dataGridView1.Columns["ImageColumn"].Index;
+                    dataGridView1.InvalidateCell(imageColIndex, pendingRowIndex);
+                    dataGridView1.UpdateCellValue(imageColIndex, pendingRowIndex);
+                }
             }
+            catch { }
+            
         }
         private void RefreshFileList(string directoryPath = null)
         {
@@ -419,104 +435,7 @@ namespace PicTimeTagManage
             var prop = obj.GetType().GetProperty(propertyName);
             return prop?.GetValue(obj);
         }
-        private void dataGridView1_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
-        {
-            // 确保点击的是列头
-            if (e.RowIndex == -1 && e.ColumnIndex >= 0)
-            {
-                string columnName = dataGridView1.Columns[e.ColumnIndex].DataPropertyName; // 获取绑定字段名
-                List<FileInfoDisplay> sortedList;
-
-                // 判断排序方向
-                // 如果点击的是新列，默认升序；如果点击的是同一列，切换排序方向
-                if (_lastSortedColumn != columnName)
-                {
-                    _currentSortDirection = SortOrder.Ascending;
-                }
-                else
-                {
-                    // 切换方向
-                    _currentSortDirection = _currentSortDirection == SortOrder.Ascending ? SortOrder.Descending : SortOrder.Ascending;
-                }
-
-                _lastSortedColumn = columnName; // 更新最后一次排序的列
-
-                // 使用 LINQ 进行排序
-                switch (_currentSortDirection)
-                {
-                    case SortOrder.Ascending:
-                        sortedList = _fileBindingList.OrderBy(x => GetPropertyValue(x, columnName)).ToList();
-                        break;
-                    case SortOrder.Descending:
-                        sortedList = _fileBindingList.OrderByDescending(x => GetPropertyValue(x, columnName)).ToList();
-                        break;
-                    default:
-                        sortedList = _fileBindingList.OrderBy(x => GetPropertyValue(x, columnName)).ToList();
-                        break;
-                }
-
-                // 清空绑定列表并重新添加排序后的数据
-                _fileBindingList.Clear();
-                foreach (var item in sortedList)
-                {
-                    _fileBindingList.Add(item);
-                }
-
-            }
-        }
-        private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
-        {
-            // 检查是否点击了左上角单元格（行头-1，列头-1）
-            if (e.RowIndex == -1 && e.ColumnIndex == -1)
-            {
-                // 清除当前所有选择（可选，取决于你是否希望在点击全选时清除原有选择）
-                // dataGridView1.ClearSelection();
-
-                // 遍历所有行，设置 Selected 属性为 true
-                foreach (DataGridViewRow row in dataGridView1.Rows)
-                {
-                    if (!row.IsNewRow)
-                    {
-                        row.Selected = true;
-                    }
-                }
-            }
-        }
-        private void dataGridView1_SelectionChanged(object sender, EventArgs e)
-        {
-            // 获取选中的行数
-            int selectedRowCount = dataGridView1.SelectedRows.Count;
-
-            // 如果至少有一行被选中
-            if (selectedRowCount > 0)
-            {
-                // 假设我们显示第一列的数据，可以根据需要调整
-                string firstCellValue = dataGridView1.SelectedRows[0].Cells[0].Value?.ToString() ?? "";
-                label5.Text = $"选中了 {selectedRowCount} 行";
-            }
-            else
-            {
-                label5.Text = "没有行被选中";
-            }
-
-            #region 当DataGridView的选择发生变化时触发读取文件
-            // 确保有选中的行
-            if (dataGridView1.SelectedRows.Count > 0)
-            {
-                DataGridViewRow selectedRow = dataGridView1.SelectedRows[0];
-                // 全局的当前选择文件路径名
-                pendingFilePath = selectedRow.Cells["FullPath"].Value?.ToString();
-
-                // 停止之前的计时器（如果正在运行）
-                selectionTimer.Stop();
-                // 重新启动计时器，开始新的延迟等待
-                selectionTimer.Start();
-            }
-            #endregion
-        }
-        private void dataGridView1_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
-        {
-        }
+       
         private void dataGridView2_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
             if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
@@ -603,12 +522,19 @@ namespace PicTimeTagManage
         #region 系统剪切板监听
         protected override void WndProc(ref Message m)
         {
-            // 监听剪贴板更新消息（WM_CLIPBOARDUPDATE）
-            if (m.Msg == NativeMethods.WM_CLIPBOARDUPDATE)
+            try
             {
-                OnClipboardUpdated();
+                // 监听剪贴板更新消息（WM_CLIPBOARDUPDATE）
+                if (m.Msg == NativeMethods.WM_CLIPBOARDUPDATE)
+                {
+                    OnClipboardUpdated();
+                }
+                base.WndProc(ref m);
             }
-            base.WndProc(ref m);
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"WndProc异常: {ex.Message}");
+            }
         }
 
         private void OnClipboardUpdated()
@@ -635,8 +561,14 @@ namespace PicTimeTagManage
                 Console.WriteLine($"访问剪贴板失败: {ex.Message}");
             }
         }
+        private bool _isClosing;
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            //_isClosing = true;
+            //if (_thumbnailService != null)
+            //    _thumbnailService.ThumbnailLoaded -= ThumbnailService_ThumbnailLoaded;
+           
+            //base.OnFormClosing(e);
         }
         #endregion
 
@@ -655,9 +587,12 @@ namespace PicTimeTagManage
             {
                 _thumbnailCache.Clear();
                 _imageFiles = GetAllFilePath();
+                //遍历所有现有行，设置行高
+                foreach (DataGridViewRow row in dataGridView1.Rows) row.Height = THUMBNAIL_HEIGHT + 10;
             }
         }
 
+       
        
     }
 }

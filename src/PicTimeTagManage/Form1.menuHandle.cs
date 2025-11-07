@@ -245,13 +245,13 @@ namespace PicTimeTagManage
             progressBar1.Value = 0;
             try
             {
-                await Task.Run(async () =>
+                await Task.Run(() =>
                 {
                     for (int i = 0; i < selectedRows.Count; i++)
                     {
                         var row = selectedRows[i];
-                        _ = ReadExifTimeGpsInfoA(row,i,selectedRows.Count);
-                       
+                        _ = ReadExifTimeGpsInfoA(row, i, selectedRows.Count);
+
                         if (i % 10 == 0)
                         {
                             //await Task.Delay(2000);
@@ -473,7 +473,7 @@ namespace PicTimeTagManage
                         {
                             //1 = 正常（不旋转）3 = 旋转180度 6 = 顺时针旋转90度 8 = 逆时针旋转90度
                             PicRotation(filePath, rotationAngle);
-                            ShowImgInThumbnail(filePath);
+                            ShowBigImgThumbnail(filePath);
                             int GridCol = dataGridView1.Columns["ImageColumn"].Index;
                             int GridRow = FindCellIndexByValueColumn(dataGridView1, filePath, "FullPath");
                             DataGridViewCellValueEventArgs eGrid = new DataGridViewCellValueEventArgs(GridCol, GridRow);

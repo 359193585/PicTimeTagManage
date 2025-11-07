@@ -18,6 +18,7 @@
 
 using System;
 using System.Windows.Forms;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PicTimeTagManage
 {
@@ -31,7 +32,27 @@ namespace PicTimeTagManage
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+
+            IServiceProvider serviceProvider = services.BuildServiceProvider();
+
+            using (var mainForm = serviceProvider.GetRequiredService<Form1>())
+            {
+                Application.Run(mainForm);
+            }
+
+        }
+
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services.AddScoped<IThumbnailService, ThumbnailService>();
+            services.AddScoped<IThumbnailGenerator, DefaultThumbnailGenerator>();
+            services.AddScoped<IThumbnailCache, DictionaryThumbnailCache>();
+
+            // 注册主窗体本身
+            services.AddScoped<Form1>();
         }
     }
 }

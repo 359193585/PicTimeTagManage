@@ -23,6 +23,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -418,23 +419,21 @@ namespace PicTimeTagManage
             }
         }
         #endregion
-        private Timer selectionTimer;
+        private System.Threading.Timer selectionTimer2;
         private void SetupSelectionTimer()
         {
-            selectionTimer = new Timer();
-            selectionTimer.Interval = 300; // 设置延迟时间，如500毫秒，可根据体验调整
-            selectionTimer.Tick += SelectionTimer_Tick;
-        }
-
-        private void SelectionTimer_Tick(object sender, EventArgs e)
-        {
-            selectionTimer.Stop(); // 停止计时器
-
-            if (!string.IsNullOrEmpty(pendingFilePath))
+            selectionTimer2 = new System.Threading.Timer(_ =>
             {
-                ShowImgInThumbnail(pendingFilePath);
-                GetMultipleMetaDataAll(pendingFilePath);
-            }
+                if (string.IsNullOrEmpty(pendingFilePath)) return;
+                this.BeginInvoke(new Action(() =>
+                {
+                    ShowBigImgThumbnail(pendingFilePath);
+                    GetMultipleMetaDataAll(pendingFilePath);
+                }));
+            }, null, Timeout.Infinite, Timeout.Infinite);
+
         }
+        private bool isSelectionStable = false;
+        
     }
 }
